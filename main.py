@@ -618,17 +618,22 @@ class Comments(ft.View):
         self.init()
 
     def getComments(self, song_id:int):
-        directory='Comments/'+str(song_id)+'.txt'
-        file=open(directory,'r').readlines()
+        cursor = connectDatabase().cursor()
+        cursor.execute(f"SELECT * FROM comments WHERE song_id={song_id}")
+        lines = cursor.fetchall()
+        file = []
+        for line in lines:
+            if len(line) == 3:
+                file.append(line[2])
+        cursor.close()
         return file
 
     def sendComment(self,e):
-        val=e.control.value
-        directory = 'Comments/' + str(self.song_id) + '.txt'
-        file = open(directory, 'a')
-        file.writelines(f'{val}\n')
-        file.close()
-        print('Send Comment OK')
+        conn=connectDatabase()
+        cursor = conn.cursor()
+        cursor.execute(f"INSERT INTO comments (song_id,date,content) VALUES ({self.song_id},{time_now},'{e.control.value}')")
+        conn.commit()
+        cursor.close()
         self.init()
         self.page.update()
 
