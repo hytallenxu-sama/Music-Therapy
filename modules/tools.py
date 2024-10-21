@@ -1,7 +1,7 @@
 import sqlite3
 def connectDatabase():
     try:
-        conn = sqlite3.connect('database.db')
+        conn = sqlite3.connect('modules/database.db')
         return conn
     except Exception as e:
         print(e)
