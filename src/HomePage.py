@@ -1,8 +1,6 @@
 import flet as ft
-from modules.AudioDirectory import AudioDirectory
-from modules.navbar import navbar
-from modules.tools import *
-from modules.Song import Song
+from modules import *
+
 class HomePage(ft.View):
     def __init__(self, page: ft.Page):
         super(HomePage, self).__init__(

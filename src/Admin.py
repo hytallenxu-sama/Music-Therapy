@@ -2,11 +2,8 @@ import flet as ft
 import matplotlib.pyplot as plt
 import io
 import base64
-from modules.AudioDirectory import AudioDirectory
-from modules.navbar import navbar
-from hashlib import sha256 # for admin purposes
-from modules.tools import *
-from modules.Song import Song
+from hashlib import sha256
+from modules import *
 
 class Admin(ft.View):
     def __init__(self, page: ft.Page):

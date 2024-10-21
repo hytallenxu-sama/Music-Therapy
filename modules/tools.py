@@ -12,7 +12,6 @@ def getSong(self, id: int):
         if (i.song_id == id):
             return i
 
-
 def getCounts(self, id: int) -> int:
     cursor=connectDatabase().cursor()
     cursor.execute(f"SELECT counts FROM songs WHERE song_id={id}")
