@@ -1,7 +1,4 @@
 import flet as ft
-import matplotlib.pyplot as plt
-import io
-import base64
 from hashlib import sha256
 from modules import *
 
@@ -62,44 +59,14 @@ class Admin(ft.View):
         self.init()
         self.page.update()
 
-    def returnBase64(self,data:dict):
-        plt.switch_backend('Agg')
-        sorted_data = sorted(data.items())
-        dates = [item[0] for item in sorted_data]
-        times = [int(item[1]) for item in sorted_data]
-
-        # Create the plot
-        fig, ax = plt.subplots()
-        ax.plot(dates, times, marker='o')
-
-        # Set labels
-        ax.set_xlabel("Date")
-        ax.set_ylabel("Times")
-        ax.set_title("Times vs. Date")
-
-        # Save the plot to a BytesIO object
-        buffer = io.BytesIO()
-        plt.savefig(buffer, format="png")
-        buffer.seek(0)
-
-        # Convert the plot to a base64 string for Flet Image
-        img_data = buffer.getvalue()
-        plt.close(fig)  # Close the figure after saving to free resources
-
-        # Convert BytesIO object to a base64-encoded image
-        img_data = base64.b64encode(img_data).decode("utf-8")
-        return img_data
-
-    def getDailyData(self):
-        cursor=connectDatabase().cursor()
-        cursor.execute("SELECT * FROM daily_stats")
-        lines = cursor.fetchall()
-        res = {}
-        for line in lines:
-            if len(line) == 2:
-                res[str(line[0])] = line[1]
-        cursor.close()
+    def addSongs(self)->ft.Row:
+        res = ft.Row()
+        res.controls=[
+            ft.TextField(),
+            ft.TextField()
+        ]
         return res
+
 
     def goAdminPage(self):
         # Clear all controls in the current view
@@ -136,9 +103,10 @@ class Admin(ft.View):
         self.controls.append(table)
         self.controls.append(
             ft.Image(
-                src_base64=self.returnBase64(self.getDailyData())
+                src_base64=returnBase64(self=self,data=getDailyData(self))
             )
         )
+        self.controls.append(self.addSongs())
 
         # Refresh the page to reflect the changes
         self.page.update()

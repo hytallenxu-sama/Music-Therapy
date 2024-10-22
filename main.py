@@ -3,6 +3,7 @@ from src import *
 
 def main(page: ft.Page):
     page.theme_mode = ft.ThemeMode.LIGHT
+
     def router(route):
         page.views.clear()
         if(page.route=='/home'):
