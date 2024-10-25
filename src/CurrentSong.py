@@ -146,7 +146,8 @@ class CurrentSong(ft.View):
             if not self.audio:
                 self.create_audio_track()
             from time import sleep
-            sleep(0.5)  # sleep 0.5 seconds to ensure nothing is None
+            while not self.audio.get_duration:
+                sleep(0.03)
             # Toggle play/pause and retrieve the duration
             self.toggle_play_pause()
             self.duration = self.audio.get_duration()

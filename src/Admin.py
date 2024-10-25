@@ -42,7 +42,8 @@ class Admin(ft.View):
         conn.close()
         return users
 
-    def submitInfo(self, e):
+    def submitInfo(self,e):
+        print(e.control.data)
         pw=sha256(self.password.value.encode('utf-8')).hexdigest()
         users=self.userList()
         if(self.user.value in users and pw==users[self.user.value][0]):
@@ -59,11 +60,25 @@ class Admin(ft.View):
         self.init()
         self.page.update()
 
+    def addToDatabase(self,e):
+        print(e.control.data)
+        return 0
+        conn = connectDatabase()
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO songs (song_name, artist) VALUES (?, ?)", (self.controls[0].value, self.controls[1].value))
+        conn.commit()
+        conn.close()
+        self.goAdminPage()
+
     def addSongs(self)->ft.Row:
         res = ft.Row()
         res.controls=[
             ft.TextField(),
-            ft.TextField()
+            ft.TextField(),
+            ft.ElevatedButton(
+                data=res,
+                on_click=self.addToDatabase
+            )
         ]
         return res
 
@@ -100,12 +115,11 @@ class Admin(ft.View):
                 ) for song in stats
             ]
         )
-        self.controls.append(table)
-        self.controls.append(
-            ft.Image(
-                src_base64=returnBase64(self=self,data=getDailyData(self))
-            )
-        )
+        self.controls.extend([table,
+                              ft.Image(
+                                  src_base64=returnBase64(self=self, data=getDailyData(self))
+                              )
+                              ])
         self.controls.append(self.addSongs())
 
         # Refresh the page to reflect the changes
