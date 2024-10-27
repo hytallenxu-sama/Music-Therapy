@@ -43,7 +43,6 @@ class Admin(ft.View):
         return users
 
     def submitInfo(self,e):
-        print(e.control.data)
         pw=sha256(self.password.value.encode('utf-8')).hexdigest()
         users=self.userList()
         if(self.user.value in users and pw==users[self.user.value][0]):
@@ -61,24 +60,25 @@ class Admin(ft.View):
         self.page.update()
 
     def addToDatabase(self,e):
-        print(e.control.data)
-        return 0
         conn = connectDatabase()
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO songs (song_name, artist) VALUES (?, ?)", (self.controls[0].value, self.controls[1].value))
+        cursor.execute("INSERT INTO songs (song_name, artist, audio_path, img_src, counts) VALUES (?,?,?,?)",
+                       (self.addSongName.value, self.addArtist.value, self.addAudio.value, self.addSrc.value, 0))
         conn.commit()
         conn.close()
-        self.goAdminPage()
+        #self.goAdminPage()
 
-    def addSongs(self)->ft.Row:
-        res = ft.Row()
+    def addSongs(self)->ft.ResponsiveRow:
+        res = ft.ResponsiveRow()
+        self.addSongName=ft.TextField()
+        self.addArtist=ft.TextField()
+        self.addAudio=ft.TextField()
+        self.addSrc=ft.TextField()
         res.controls=[
-            ft.TextField(),
-            ft.TextField(),
-            ft.ElevatedButton(
-                data=res,
-                on_click=self.addToDatabase
-            )
+            ft.Column(col={"sm": 6}, controls=[ft.Text("Song Name",font_family="Fira"),self.addSongName]),
+            ft.Column(col={"sm": 6}, controls=[ft.Text("Artist",font_family="Fira"),self.addArtist]),
+            ft.Column(col={"sm": 6}, controls=[ft.Text("Audio Path",font_family="Fira"),self.addAudio]),
+            ft.Column(col={"sm": 6}, controls=[ft.Text("Image Path",font_family="Fira"),self.addSrc]),
         ]
         return res
 
@@ -120,7 +120,7 @@ class Admin(ft.View):
                                   src_base64=returnBase64(self=self, data=getDailyData(self))
                               )
                               ])
-        self.controls.append(self.addSongs())
+        self.controls.extend([self.addSongs(),ft.ElevatedButton(on_click=self.addToDatabase,content=ft.Text("Add Song",font_family="Fira"))])
 
         # Refresh the page to reflect the changes
         self.page.update()

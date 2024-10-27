@@ -3,111 +3,144 @@ from modules import *
 
 class HomePage(ft.View):
     def __init__(self, page: ft.Page):
-        super(HomePage, self).__init__(
+        super().__init__(
             route='/home',
-            horizontal_alignment='center'
+            horizontal_alignment='center',
+            vertical_alignment='start',  # Align content to the top
+            scroll='ADAPTIVE'  # Enable scrolling for the view
         )
-        self.page=page
-        self.controls.append(navbar(self.page,0))
+        self.page = page
         self.playlist: list[Song] = AudioDirectory.playlist
-        self.page.fonts={
-            "Fira":"FiraCode.ttf"
+        self.page.fonts = {
+            "Fira": "FiraCode.ttf"
         }
 
-        #add home logo to page
-        self.controls.append(
+        # Create a main Column to hold all content
+        main_column = ft.Column(
+            alignment=ft.MainAxisAlignment.START,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=20,  # Space between controls
+            controls=[]
+        )
+
+        # Add navbar to the main column
+        self.controls.append(navbar(self.page, 0))
+
+        # Add home logo to the main column
+        main_column.controls.append(
             ft.Container(
-                image_src=f"content/logo.png",
+                image_src="content/logo.png",
                 width=250,
-                height=250
+                height=250,
+                alignment=ft.alignment.center
             )
         )
-        self.controls.append(
+
+        # Add the "Most Played Songs" header
+        main_column.controls.append(
             ft.Container(
-                content=ft.Row(
-                    controls=[
-                        ft.Text(
-                            "播放最多的歌曲",
-                            size=15,
-                            font_family="Fira",
-                        )
-                    ],
-                    alignment="center"
+                content=ft.Text(
+                    "播放最多的歌曲",
+                    size=20,
+                    font_family="Fira",
+                    text_align="center"
                 ),
-                padding=10
+                padding=ft.padding.symmetric(vertical=10)
             )
         )
+
+        # Create a Column for the list of songs
+        self.song_list_column = ft.Column(
+            alignment=ft.MainAxisAlignment.START,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=15  # Space between song rows
+        )
+
+        # Remove the fixed height and just wrap the song list column directly
+        scrollable_song_list = ft.Container(
+            content=self.song_list_column,
+            expand=False,  # Remove expand to let the container adjust to the content height
+            padding=ft.padding.symmetric(horizontal=20),
+        )
+
+        # Add the scrollable song list to the main column
+        main_column.controls.append(scrollable_song_list)
+
+        # Set the main column as the content of the view
+        self.controls.append(main_column)
+
+        # Populate the song list
         self.add_fav_to_home()
 
     def add_fav_to_home(self):
-        song=getSongStats(self)
-        for i in range(0,len(song),2):
+        songs = getSongStats(self)
+        for i in range(0, len(songs), 2):
             try:
-                first = song[i]
-                second = song[i + 1]
-                res = self.create_song_row(first, second)
-                self.controls.append(res)
+                first = songs[i]
+                second = songs[i + 1] if (i + 1) < len(songs) else None
+                if second:
+                    song_row = self.create_song_row(first, second)
+                else:
+                    song_row = self.create_single_song_container(first)
+                self.song_list_column.controls.append(song_row)
             except Exception as e:
-                print(f"Error: {e}")
+                print(f"Error adding songs: {e}")
 
     def toggle_song(self, e):
-        self.page.session.set("song",e.control.data)
+        self.page.session.set("song", e.control.data)
         self.page.go('/song')
 
+    def create_song_row(self, song1: Song, song2: Song):
+        # Create containers for each song
+        cont1 = self.create_song_container(song1)
+        cont2 = self.create_song_container(song2)
 
-    def create_song_row(self, song: Song, song2: Song)->ft.Row:
-        # Create the first container with image and text for the first song
-        cont1 = ft.Container(
+        # Create a row containing both song containers
+        song_row = ft.Row(
+            controls=[cont1, cont2],
+            alignment=ft.MainAxisAlignment.SPACE_EVENLY,
+            spacing=80,
+            wrap=True  # Allow wrapping if screen is narrow
+        )
+        return song_row
+
+    def create_single_song_container(self, song: Song):
+        # Create a single song container occupying full width
+        cont = self.create_song_container(song)
+        single_row = ft.Row(
+            controls=[cont],
+            alignment=ft.MainAxisAlignment.CENTER,
+            spacing=20
+        )
+        return single_row
+
+    def create_song_container(self, song: Song):
+        return ft.Container(
             content=ft.Column(
-                [
-                    ft.Image(src=song.img_src, expand=True),  # Adjust width/height for initial size
+                controls=[
+                    ft.Image(
+                        src=song.img_src,
+                        width=150,
+                        height=150,
+                        fit=ft.ImageFit.CONTAIN
+                    ),
                     ft.Text(
                         f'{song.name}\n{song.artist}',
                         font_family="Fira",
                         text_align="center",
-                        size=14  # Font size that adjusts
+                        size=14
                     )
                 ],
-                alignment="center",
-                horizontal_alignment="center",
-
+                alignment=ft.MainAxisAlignment.CENTER,
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                spacing=10
             ),
             padding=10,
-            border=ft.border.all(10, ft.colors.GREEN_ACCENT),
-            expand=True,  # Allow the container to expand
-            data=song,
-            on_click=self.toggle_song
+            border=ft.border.all(2, ft.colors.GREEN_ACCENT),
+            border_radius=ft.border_radius.all(10),
+            width=250,  # Fixed width to ensure consistency
+            height=230,  # Fixed height to prevent stretching
+            bgcolor=ft.colors.WHITE,
+            on_click=self.toggle_song,
+            data=song  # Store the song data for the toggle function
         )
-
-        # Create the second container with image and text for the second song
-        cont2 = ft.Container(
-            content=ft.Column(
-                [
-                    ft.Image(src=song2.img_src, expand=True),  # Adjust width/height for initial size
-                    ft.Text(
-                        f'{song2.name}\n{song2.artist}',
-                        font_family="Fira",
-                        text_align="center",
-                        size=14  # Font size that adjusts
-                    )
-                ],
-                #alignment="center",
-                horizontal_alignment="center"
-            ),
-            padding=10,
-            border=ft.border.all(10, ft.colors.GREEN_ACCENT),
-            expand=True,  # Allow the container to expand
-            data=song2,
-            on_click=self.toggle_song
-        )
-
-        # Create the row containing both containers
-        content = ft.Row(
-            controls=[cont1, cont2],
-            alignment="SPACE_EVENLY",
-            expand=True  # Allow the row to expand
-        )
-
-        # Return the containers and content row
-        return content
-
