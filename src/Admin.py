@@ -1,25 +1,16 @@
 import flet as ft
-from hashlib import sha256
 from modules import *
-
 
 class Admin(ft.View):
     def __init__(self, page: ft.Page):
         super().__init__(
             route='/settings',
             horizontal_alignment='center',
-            scroll='ALWAYS'
+            scroll='ADAPTIVE'
         )
         self.page = page
         self.page.fonts = {"Fira": "content/FiraCode.ttf"}
         self.playlist: list[Song] = AudioDirectory.playlist
-        self.user = None
-        self.password = None
-        self.submitButton = None
-        self.addSongName = None
-        self.addArtist = None
-        self.addAudio = None
-        self.addSrc = None
         self.init()
 
     def init(self):
@@ -42,7 +33,11 @@ class Admin(ft.View):
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     spacing=10
                 ),
-                alignment=ft.alignment.center
+                alignment=ft.alignment.center,
+                padding=ft.padding.all(20),
+                border=ft.border.all(1, ft.colors.BLACK12),
+                border_radius=10,
+                bgcolor=ft.colors.WHITE
             )
         ]
 
@@ -68,7 +63,7 @@ class Admin(ft.View):
 
     def submitInfo(self, e):
         # Hash the password input
-        pw = sha256(self.password.value.encode('utf-8')).hexdigest()
+        pw = hash(self.password.value)
         users = self.userList()
         if self.user.value in users and pw == users[self.user.value][0]:
             # Store session information
@@ -89,7 +84,7 @@ class Admin(ft.View):
         self.init()
         self.page.update()
 
-    def addToDatabase(self, e):
+    def addSongToDatabase(self, e):
         try:
             conn = connectDatabase()
             cursor = conn.cursor()
@@ -105,29 +100,74 @@ class Admin(ft.View):
             self.controls.append(ft.Text("Failed to add song. Please try again.", color=ft.colors.RED))
             self.page.update()
 
-    def addSongsForm(self) -> ft.Column:
-        # Song addition form encapsulated in a Column for neat organization
-        self.addSongName = ft.TextField(label="Song Name", width=300)
-        self.addArtist = ft.TextField(label="Artist", width=300)
-        self.addAudio = ft.TextField(label="Audio Path", width=300)
-        self.addSrc = ft.TextField(label="Image Path", width=300)
+    def addUserToDatabase(self, e):
+        try:
+            conn = connectDatabase()
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO users (username, password, role) VALUES (?,?,?)",
+                           (self.addUser.value, hash(self.addPassword.value), self.addRole.value))
+            conn.commit()
+            conn.close()
+            # Show a success message to the user
+            self.controls.append(ft.Text("User added successfully!", color=ft.colors.GREEN))
+            self.page.update()
+        except Exception as e:
+            print(f"Error adding user: {e}")
+            self.controls.append(ft.Text("Failed to add user. Please try again.", color=ft.colors.RED))
+            self.page.update()
 
-        addSongButton = ft.ElevatedButton(
-            "Add Song", on_click=self.addToDatabase
+    def addUsersForm(self) -> ft.Card:
+        self.addUser = ft.TextField(label="User", width=250)
+        self.addPassword = ft.TextField(label="Password", width=250, password=True, can_reveal_password=True)
+        self.addRole = ft.TextField(label="Role", width=250)
+
+        addUserButton = ft.ElevatedButton("Add User", on_click=self.addUserToDatabase)
+
+        user_form = ft.Card(
+            content=ft.Container(
+                content=ft.Column(
+                    controls=[
+                        ft.Text("Add New User", size=18, weight="bold", font_family="Fira"),
+                        self.addUser,
+                        self.addPassword,
+                        self.addRole,
+                        addUserButton
+                    ],
+                    alignment=ft.MainAxisAlignment.START,
+                    spacing=10
+                ),
+                padding=ft.padding.all(15)
+            ),
+            elevation=5
         )
+        return user_form
 
-        song_form = ft.Column(
-            controls=[
-                self.addSongName,
-                self.addArtist,
-                self.addAudio,
-                self.addSrc,
-                addSongButton
-            ],
-            alignment=ft.MainAxisAlignment.START,
-            spacing=10
+    def addSongsForm(self) -> ft.Card:
+        self.addSongName = ft.TextField(label="Song Name", width=250)
+        self.addArtist = ft.TextField(label="Artist", width=250)
+        self.addAudio = ft.TextField(label="Audio Path", width=250)
+        self.addSrc = ft.TextField(label="Image Path", width=250)
+
+        addSongButton = ft.ElevatedButton("Add Song", on_click=self.addSongToDatabase)
+
+        song_form = ft.Card(
+            content=ft.Container(
+                content=ft.Column(
+                    controls=[
+                        ft.Text("Add New Song", size=18, weight="bold", font_family="Fira"),
+                        self.addSongName,
+                        self.addArtist,
+                        self.addAudio,
+                        self.addSrc,
+                        addSongButton
+                    ],
+                    alignment=ft.MainAxisAlignment.START,
+                    spacing=10
+                ),
+                padding=ft.padding.all(15)
+            ),
+            elevation=5
         )
-
         return song_form
 
     def goAdminPage(self):
@@ -135,14 +175,14 @@ class Admin(ft.View):
         self.controls.clear()
         self.controls.append(navbar(self.page, 2))
         self.controls.append(
-            ft.Text(f"Welcome, {self.page.session.get('user')}!", font_family="Fira", size=24)
+            ft.Text(f"Welcome, {self.page.session.get('user')}!", font_family="Fira", size=24, weight="bold")
         )
         self.controls.append(ft.TextButton(
             content=ft.Text("Log Out", font_family="Fira"),
             on_click=self.logout
         ))
 
-        # Add datatables for song stats
+        # Add a section for song statistics with a table
         stats = getSongStats(self)
         table = ft.DataTable(
             columns=[
@@ -161,15 +201,46 @@ class Admin(ft.View):
             ]
         )
 
-        # Add the data table and chart
-        self.controls.append(table)
-        self.controls.append(
-            ft.Image(src_base64=returnBase64(self=self, data=getDailyData(self)))
+        # Wrap the data table and chart in a card
+        stats_card = ft.Card(
+            content=ft.Container(
+                content=ft.Column(
+                    controls=[
+                        ft.Text("Song Play Statistics", size=18, weight="bold", font_family="Fira"),
+                        table,
+                        ft.Image(src_base64=returnBase64(self=self, data=getDailyData(self)))
+                    ],
+                    alignment=ft.MainAxisAlignment.START,
+                    spacing=10
+                ),
+                padding=ft.padding.all(15)
+            ),
+            elevation=5
         )
 
-        # Add song addition form
-        self.controls.append(self.addSongsForm())
+        self.controls.append(stats_card)
+
+        # Add the user and song forms in a row for better layout
+        forms_row = ft.Row(
+            controls=[
+                self.addSongsForm(),
+                self.addUsersForm()
+            ],
+            spacing=20,
+            wrap=True,
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN
+        )
+
+        # Wrap forms in a column for further layout organization
+        forms_section = ft.Column(
+            controls=[
+                ft.Text("Administration Tools", size=24, weight="bold", font_family="Fira"),
+                forms_row
+            ],
+            spacing=20
+        )
+
+        self.controls.append(forms_section)
 
         # Refresh the page to reflect changes
         self.page.update()
-

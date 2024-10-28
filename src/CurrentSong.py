@@ -14,8 +14,8 @@ class CurrentSong(ft.View):
             vertical_alignment='center'
         )
         self.audio = None
-        self.page=page
-        self.song=self.page.session.get('song')
+        self.page = page
+        self.song = self.page.session.get('song')
         self.add_num()
 
         #print(self.song.song_name, self.song.artist_name)

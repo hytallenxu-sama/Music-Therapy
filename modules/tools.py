@@ -2,6 +2,8 @@ import sqlite3
 import matplotlib.pyplot as plt
 import io
 import base64
+from hashlib import sha256
+
 def connectDatabase():
     try:
         conn = sqlite3.connect('modules/database.db')
@@ -82,3 +84,6 @@ def getDailyData(self):
             res[str(line[0])] = line[1]
     cursor.close()
     return res
+
+def hash(password:str):
+    return sha256(password.encode('utf-8')).hexdigest()

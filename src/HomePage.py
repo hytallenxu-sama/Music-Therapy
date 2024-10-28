@@ -120,8 +120,8 @@ class HomePage(ft.View):
                 controls=[
                     ft.Image(
                         src=song.img_src,
-                        width=150,
-                        height=150,
+                        width=300,
+                        height=300,
                         fit=ft.ImageFit.CONTAIN
                     ),
                     ft.Text(
@@ -138,8 +138,8 @@ class HomePage(ft.View):
             padding=10,
             border=ft.border.all(2, ft.colors.GREEN_ACCENT),
             border_radius=ft.border_radius.all(10),
-            width=250,  # Fixed width to ensure consistency
-            height=230,  # Fixed height to prevent stretching
+            width=420,  # Fixed width to ensure consistency
+            height=420,  # Fixed height to prevent stretching
             bgcolor=ft.colors.WHITE,
             on_click=self.toggle_song,
             data=song  # Store the song data for the toggle function
