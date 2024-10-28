@@ -1,8 +1,5 @@
 import flet as ft
-from modules.AudioDirectory import AudioDirectory
-from modules.navbar import navbar
-from modules.tools import *
-from modules.Song import Song
+from modules import *
 from time import *
 t=localtime()
 time_now=str(t.tm_year)+str(t.tm_mon)+str(t.tm_mday)
@@ -17,8 +14,8 @@ class CurrentSong(ft.View):
             vertical_alignment='center'
         )
         self.audio = None
-        self.page=page
-        self.song=self.page.session.get('song')
+        self.page = page
+        self.song = self.page.session.get('song')
         self.add_num()
 
         #print(self.song.song_name, self.song.artist_name)
@@ -149,7 +146,8 @@ class CurrentSong(ft.View):
             if not self.audio:
                 self.create_audio_track()
             from time import sleep
-            sleep(0.5)  # sleep 0.5 seconds to ensure nothing is None
+            while not self.audio.get_duration:
+                sleep(0.03)
             # Toggle play/pause and retrieve the duration
             self.toggle_play_pause()
             self.duration = self.audio.get_duration()

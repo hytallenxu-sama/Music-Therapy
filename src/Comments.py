@@ -1,8 +1,5 @@
 import flet as ft
-from modules.AudioDirectory import AudioDirectory
-from modules.navbar import navbar
-from modules.tools import *
-from modules.Song import Song
+from modules import *
 from time import *
 t=localtime()
 time_now=str(t.tm_year)+str(t.tm_mon)+str(t.tm_mday)
