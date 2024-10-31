@@ -3,6 +3,18 @@ import matplotlib.pyplot as plt
 import io
 import base64
 from hashlib import sha256
+import time
+def logger(type, message):
+    try:
+        conn = connectDatabase()
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO logs (type, info, time) VALUES (?,?,?)", (type, message, int(time.time())))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Error logging: {e}")
+        return False
+    return True
 
 def connectDatabase():
     try:
@@ -87,3 +99,12 @@ def getDailyData(self):
 
 def hash(password:str):
     return sha256(password.encode('utf-8')).hexdigest()
+
+from datetime import datetime
+
+# Function to convert Unix timestamp to human-readable date
+def unix_to_human(unix_timestamp):
+    # Convert Unix timestamp to datetime object
+    normal_time = datetime.fromtimestamp(unix_timestamp)
+    # Format as a readable string
+    return normal_time.strftime('%Y-%m-%d %H:%M:%S')

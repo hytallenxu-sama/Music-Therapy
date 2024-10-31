@@ -162,8 +162,10 @@ class CurrentSong(ft.View):
             self.slider.max = self.duration
         except TimeoutError as ex:
             print(f"TimeoutError: {ex}")
+            logger("ERROR", f"TimeoutError: {ex}")
         except Exception as ex:
             print(f"An error occurred: {ex}")
+            logger("ERROR", f"Error: {ex}")
 
     #    def play(self,e):
  #       self.toggle_play_pause()
