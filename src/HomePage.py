@@ -86,7 +86,7 @@ class HomePage(ft.View):
                     song_row = self.create_single_song_container(first)
                 self.song_list_column.controls.append(song_row)
             except Exception as e:
-                print(f"Error adding songs: {e}")
+                logger("ERROR", f"Error adding songs: {e}")
 
     def toggle_song(self, e):
         self.page.session.set("song", e.control.data)

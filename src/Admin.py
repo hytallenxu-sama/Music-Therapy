@@ -44,7 +44,21 @@ class Admin(ft.View):
 
         # Check for an existing session
         if self.page.session.contains_key("pw") and "ADMIN" in self.page.session.get("role"):
+            #self.addTimeStamp()
             self.goAdminPage()
+
+    def addTimeStamp(self):
+        # Modify the timestamp of the corresponding user to the database
+        try:
+            conn = connectDatabase()
+            cursor = conn.cursor()
+            #update unix time
+            import time
+            cursor.execute("UPDATE users SET LoginTime = ? WHERE username = ?", (int(time.time()), self.page.session.get("user")))
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logger("ERROR", f"Failed to update timestamp: {e}")
 
     def userList(self):
         try:
@@ -54,12 +68,11 @@ class Admin(ft.View):
             cursor.execute("SELECT * FROM users")
             lines = cursor.fetchall()
             for line in lines:
-                if len(line) == 3:
-                    users[line[0]] = [line[1], line[2]]
+                users[line[0]] = [line[1], line[2], line[3]]
             conn.close()
             return users
         except Exception as e:
-            print(f"Database connection error: {e}")
+            logger("ERROR", f"Failed to retrieve user list: {e}")
             return {}
 
     def submitInfo(self, e):
@@ -72,6 +85,8 @@ class Admin(ft.View):
             self.page.session.set("user", self.user.value)
             self.page.session.set("role", users[self.user.value][1])
             if users[self.user.value][1] == "ADMIN":
+                self.addTimeStamp()
+                logger("INFO", f"{self.user.value} logged in")
                 self.goAdminPage()
         else:
             # Show an error message if authentication fails
@@ -97,7 +112,7 @@ class Admin(ft.View):
             self.controls.append(ft.Text("Song added successfully!", color=ft.colors.GREEN))
             self.page.update()
         except Exception as e:
-            print(f"Error adding song: {e}")
+            logger("ERROR", f"Failed to add song: {e}")
             self.controls.append(ft.Text("Failed to add song. Please try again.", color=ft.colors.RED))
             self.page.update()
 
@@ -112,8 +127,9 @@ class Admin(ft.View):
             # Show a success message to the user
             self.controls.append(ft.Text("User added successfully!", color=ft.colors.GREEN))
             self.page.update()
+
         except Exception as e:
-            print(f"Error adding user: {e}")
+            logger("ERROR", f"Failed to add user: {e}")
             self.controls.append(ft.Text("Failed to add user. Please try again.", color=ft.colors.RED))
             self.page.update()
 
@@ -186,6 +202,23 @@ class Admin(ft.View):
 
         # Add a section for song statistics with a table
         stats = getSongStats(self)
+        userlist = dict(sorted(self.userList().items(), key=lambda item: item[1][-1], reverse=True))
+        user_table = ft.DataTable(
+            columns=[
+                ft.DataColumn(ft.Text("User", font_family='Fira')),
+                ft.DataColumn(ft.Text("Last Login Time", font_family='Fira')),
+            ],
+            rows=[
+                ft.DataRow(
+                    cells=[
+                        ft.DataCell(ft.Text(user, font_family='Fira')),
+                        ft.DataCell(ft.Text(unix_to_human(userlist[user][-1]), font_family='Fira'))
+                    ]
+                ) for user in userlist
+            ]
+        )
+
+
         table = ft.DataTable(
             columns=[
                 ft.DataColumn(ft.Text("Title", font_family='Fira')),
@@ -208,6 +241,7 @@ class Admin(ft.View):
             content=ft.Container(
                 content=ft.Column(
                     controls=[
+                        user_table,
                         ft.Text("Song Play Statistics", size=18, weight="bold", font_family="Fira"),
                         table,
                         ft.Image(src_base64=returnBase64(self=self, data=getDailyData(self)))
