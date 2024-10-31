@@ -10,7 +10,8 @@ class Admin(ft.View):
         )
         self.page = page
         self.page.fonts = {"Fira": "content/FiraCode.ttf"}
-        self.playlist: list[Song] = AudioDirectory.playlist
+        self.Directory = AudioDirectory()
+        self.playlist = self.Directory.playlist
         self.init()
 
     def init(self):
@@ -173,6 +174,7 @@ class Admin(ft.View):
     def goAdminPage(self):
         # Clear all controls and add admin-specific controls
         self.controls.clear()
+        self.Directory.refresh()
         self.controls.append(navbar(self.page, 2))
         self.controls.append(
             ft.Text(f"Welcome, {self.page.session.get('user')}!", font_family="Fira", size=24, weight="bold")

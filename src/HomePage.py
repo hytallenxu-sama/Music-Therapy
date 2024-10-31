@@ -10,7 +10,8 @@ class HomePage(ft.View):
             scroll='ADAPTIVE'  # Enable scrolling for the view
         )
         self.page = page
-        self.playlist: list[Song] = AudioDirectory.playlist
+        self.Directory = AudioDirectory()
+        self.playlist = self.Directory.playlist
         self.page.fonts = {
             "Fira": "FiraCode.ttf"
         }
@@ -73,6 +74,7 @@ class HomePage(ft.View):
         self.add_fav_to_home()
 
     def add_fav_to_home(self):
+        self.Directory.refresh()
         songs = getSongStats(self)
         for i in range(0, len(songs), 2):
             try:
