@@ -499,7 +499,7 @@
     <routine id="190" parent="1" name="fts5"/>
     <schema id="191" parent="1" name="main">
       <Current>1</Current>
-      <LastIntrospectionLocalTimestamp>2024-12-19.02:50:55</LastIntrospectionLocalTimestamp>
+      <LastIntrospectionLocalTimestamp>2024-12-30.11:34:05</LastIntrospectionLocalTimestamp>
     </schema>
     <argument id="192" parent="16">
       <ArgumentDirection>R</ArgumentDirection>
@@ -1590,107 +1590,121 @@
     <argument id="554" parent="190">
       <Position>1</Position>
     </argument>
-    <table id="555" parent="191" name="comments"/>
-    <table id="556" parent="191" name="daily_stats"/>
-    <table id="557" parent="191" name="logs"/>
-    <table id="558" parent="191" name="songs"/>
-    <table id="559" parent="191" name="sqlite_master">
+    <table id="555" parent="191" name="AutoReply"/>
+    <table id="556" parent="191" name="comments"/>
+    <table id="557" parent="191" name="daily_stats"/>
+    <table id="558" parent="191" name="logs"/>
+    <table id="559" parent="191" name="secrets"/>
+    <table id="560" parent="191" name="songs"/>
+    <table id="561" parent="191" name="sqlite_master">
       <System>1</System>
     </table>
-    <table id="560" parent="191" name="users"/>
-    <column id="561" parent="555" name="song_id">
+    <table id="562" parent="191" name="users"/>
+    <column id="563" parent="555" name="TOKENS">
       <Position>1</Position>
       <StoredType>integer|0s</StoredType>
     </column>
-    <column id="562" parent="555" name="date">
+    <column id="564" parent="556" name="song_id">
+      <Position>1</Position>
+      <StoredType>integer|0s</StoredType>
+    </column>
+    <column id="565" parent="556" name="date">
       <Position>2</Position>
       <StoredType>TEXT|0s</StoredType>
     </column>
-    <column id="563" parent="555" name="content">
+    <column id="566" parent="556" name="content">
       <Position>3</Position>
       <StoredType>TEXT|0s</StoredType>
     </column>
-    <column id="564" parent="556" name="date">
+    <column id="567" parent="557" name="date">
       <Position>1</Position>
       <StoredType>integer|0s</StoredType>
     </column>
-    <column id="565" parent="556" name="counts">
+    <column id="568" parent="557" name="counts">
       <Position>2</Position>
       <StoredType>integer|0s</StoredType>
     </column>
-    <column id="566" parent="557" name="type">
+    <column id="569" parent="558" name="type">
       <Position>1</Position>
       <StoredType>TEXT|0s</StoredType>
     </column>
-    <column id="567" parent="557" name="info">
+    <column id="570" parent="558" name="info">
       <Position>2</Position>
       <StoredType>TEXT|0s</StoredType>
     </column>
-    <column id="568" parent="557" name="time">
+    <column id="571" parent="558" name="time">
       <Position>3</Position>
       <StoredType>integer|0s</StoredType>
     </column>
-    <column id="569" parent="558" name="song_id">
+    <column id="572" parent="559" name="ENDPOINT">
+      <Position>1</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="573" parent="559" name="API_KEY">
+      <Position>2</Position>
+      <StoredType>TEXT|0s</StoredType>
+    </column>
+    <column id="574" parent="560" name="song_id">
       <Position>1</Position>
       <StoredType>INTEGER|0s</StoredType>
     </column>
-    <column id="570" parent="558" name="song_name">
+    <column id="575" parent="560" name="song_name">
       <Position>2</Position>
       <StoredType>TEXT|0s</StoredType>
     </column>
-    <column id="571" parent="558" name="artist">
+    <column id="576" parent="560" name="artist">
       <Position>3</Position>
       <StoredType>TEXT|0s</StoredType>
     </column>
-    <column id="572" parent="558" name="audio_path">
+    <column id="577" parent="560" name="audio_path">
       <Position>4</Position>
       <StoredType>TEXT|0s</StoredType>
     </column>
-    <column id="573" parent="558" name="img_src">
+    <column id="578" parent="560" name="img_src">
       <Position>5</Position>
       <StoredType>TEXT|0s</StoredType>
     </column>
-    <column id="574" parent="558" name="counts">
+    <column id="579" parent="560" name="counts">
       <Position>6</Position>
       <StoredType>integer|0s</StoredType>
     </column>
-    <key id="575" parent="558">
+    <key id="580" parent="560">
       <ColNames>song_id</ColNames>
       <Primary>1</Primary>
     </key>
-    <column id="576" parent="559" name="type">
+    <column id="581" parent="561" name="type">
       <Position>1</Position>
       <StoredType>TEXT|0s</StoredType>
     </column>
-    <column id="577" parent="559" name="name">
+    <column id="582" parent="561" name="name">
       <Position>2</Position>
       <StoredType>TEXT|0s</StoredType>
     </column>
-    <column id="578" parent="559" name="tbl_name">
+    <column id="583" parent="561" name="tbl_name">
       <Position>3</Position>
       <StoredType>TEXT|0s</StoredType>
     </column>
-    <column id="579" parent="559" name="rootpage">
+    <column id="584" parent="561" name="rootpage">
       <Position>4</Position>
       <StoredType>INT|0s</StoredType>
     </column>
-    <column id="580" parent="559" name="sql">
+    <column id="585" parent="561" name="sql">
       <Position>5</Position>
       <StoredType>TEXT|0s</StoredType>
     </column>
-    <column id="581" parent="560" name="username">
+    <column id="586" parent="562" name="username">
       <Position>1</Position>
       <StoredType>TEXT|0s</StoredType>
     </column>
-    <column id="582" parent="560" name="password">
+    <column id="587" parent="562" name="password">
       <Position>2</Position>
       <StoredType>TEXT|0s</StoredType>
     </column>
-    <column id="583" parent="560" name="role">
+    <column id="588" parent="562" name="role">
       <Position>3</Position>
       <StoredType>TEXT|0s</StoredType>
     </column>
-    <column id="584" parent="560" name="LoginTime">
+    <column id="589" parent="562" name="LoginTime">
       <DefaultExpression>1704038400</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>4</Position>

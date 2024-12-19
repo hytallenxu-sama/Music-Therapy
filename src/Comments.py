@@ -16,6 +16,7 @@ class Comments(ft.View):
         self.page.fonts = {"Fira": "FiraCode.ttf"}
         self.playlist: list[Song] = AudioDirectory.playlist
         self.init()
+        self.GPT = GPT()
 
     def getComments(self, song_id:int):
         cursor = connectDatabase().cursor()
@@ -29,7 +30,7 @@ class Comments(ft.View):
         return file
 
     def sendComment(self,e):
-        conn=connectDatabase()
+        conn = connectDatabase()
         cursor = conn.cursor()
         cursor.execute(f"INSERT INTO comments (song_id,date,content) VALUES ({self.song_id},{time_now},'{e.control.value}')")
         conn.commit()
@@ -37,6 +38,14 @@ class Comments(ft.View):
         self.init()
         self.page.update()
 
+        conn = connectDatabase()
+        cursor = conn.cursor()
+        GPT_reply = self.GPT.autoReply(e.control.value)
+        cursor.execute(f"INSERT INTO comments (song_id,date,content) VALUES ({self.song_id},{time_now},'{GPT_reply}')")
+        conn.commit()
+        cursor.close()
+        self.init()
+        self.page.update()
 
     def init(self):
         self.song_id=self.page.session.get('song').song_id
@@ -58,7 +67,7 @@ class Comments(ft.View):
         comments=self.getComments(self.song_id)
         for each in comments:
             self.controls.append(
-                ft.Row(
+                ft.ResponsiveRow(
                     controls=[ft.Text(value=f'Commented：{each}', font_family='Fira')]
                 )
             )

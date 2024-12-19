@@ -108,3 +108,10 @@ def unix_to_human(unix_timestamp):
     normal_time = datetime.fromtimestamp(unix_timestamp)
     # Format as a readable string
     return normal_time.strftime('%Y-%m-%d %H:%M:%S')
+
+def insertTokens(token:int):
+    conn = connectDatabase()
+    cursor = conn.cursor()
+    cursor.execute('INSERT INTO AutoReply (TOKENS) VALUES (?)', (token,))
+    conn.commit()
+    conn.close()
