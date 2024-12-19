@@ -100,6 +100,98 @@ class Admin(ft.View):
         self.init()
         self.page.update()
 
+    def removeUserFromDatabase(self, e):
+        try:
+            conn = connectDatabase()
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM users WHERE username = ?", (self.removeUser.value,))
+            conn.commit()
+            conn.close()
+
+            # Show a success message in a banner
+            self.page.banner = ft.Banner(
+                content=ft.Text("User removed successfully!", color=ft.colors.GREEN),
+                bgcolor=ft.colors.WHITE,
+                actions=[
+                    ft.TextButton("Close", on_click=lambda _: self.close_banner())
+                ]
+            )
+            self.page.banner.open = True
+            self.page.update()
+
+        except Exception as e:
+            logger("ERROR", f"Failed to remove user: {e}")
+
+            # Show an error message in a banner
+            self.page.banner = ft.Banner(
+                content=ft.Text("Failed to remove user. Please try again.", color=ft.colors.RED),
+                bgcolor=ft.colors.WHITE,
+                actions=[
+                    ft.TextButton("Close", on_click=lambda _: self.close_banner())
+                ]
+            )
+            self.page.banner.open = True
+            self.page.update()
+
+    def removeSongFromDatabase(self, e):
+        try:
+            conn = connectDatabase()
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM songs WHERE song_name = ?", (self.removeSong.value,))
+            conn.commit()
+            conn.close()
+
+            # Show a success message in a banner
+            self.page.banner = ft.Banner(
+                content=ft.Text("Song removed successfully!", color=ft.colors.GREEN),
+                bgcolor=ft.colors.WHITE,
+                actions=[
+                    ft.TextButton("Close", on_click=lambda _: self.close_banner())
+                ]
+            )
+            self.page.banner.open = True
+            self.page.update()
+
+        except Exception as e:
+            logger("ERROR", f"Failed to remove song: {e}")
+
+            # Show an error message in a banner
+            self.page.banner = ft.Banner(
+                content=ft.Text("Failed to remove song. Please try again.", color=ft.colors.RED),
+                bgcolor=ft.colors.WHITE,
+                actions=[
+                    ft.TextButton("Close", on_click=lambda _: self.close_banner())
+                ]
+            )
+            self.page.banner.open = True
+            self.page.update()
+
+    def removeItemsForm(self) -> ft.Card:
+        self.removeUser = ft.TextField(label="Username to Remove", width=250)
+        self.removeSong = ft.TextField(label="Song Name to Remove", width=250)
+
+        removeUserButton = ft.ElevatedButton("Remove User", on_click=self.removeUserFromDatabase)
+        removeSongButton = ft.ElevatedButton("Remove Song", on_click=self.removeSongFromDatabase)
+
+        remove_form = ft.Card(
+            content=ft.Container(
+                content=ft.Column(
+                    controls=[
+                        ft.Text("Remove User or Song", size=18, weight="bold", font_family="Fira"),
+                        self.removeUser,
+                        removeUserButton,
+                        self.removeSong,
+                        removeSongButton
+                    ],
+                    alignment=ft.MainAxisAlignment.START,
+                    spacing=10
+                ),
+                padding=ft.padding.all(15)
+            ),
+            elevation=5
+        )
+        return remove_form
+
     def addSongToDatabase(self, e):
         try:
             conn = connectDatabase()
@@ -124,19 +216,49 @@ class Admin(ft.View):
                            (self.addUser.value, hash(self.addPassword.value), self.addRole.value))
             conn.commit()
             conn.close()
-            # Show a success message to the user
-            self.controls.append(ft.Text("User added successfully!", color=ft.colors.GREEN))
+
+            # Show a success message in a banner
+            self.page.banner = ft.Banner(
+                content=ft.Text("User added successfully!", color=ft.colors.GREEN),
+                bgcolor=ft.colors.WHITE,
+                actions=[
+                    ft.TextButton("Close", on_click=lambda _: self.close_banner())
+                ]
+            )
+            self.page.banner.open = True
             self.page.update()
 
         except Exception as e:
             logger("ERROR", f"Failed to add user: {e}")
-            self.controls.append(ft.Text("Failed to add user. Please try again.", color=ft.colors.RED))
+
+            # Show an error message in a banner
+            self.page.banner = ft.Banner(
+                content=ft.Text("Failed to add user. Please try again.", color=ft.colors.RED),
+                bgcolor=ft.colors.WHITE,
+                actions=[
+                    ft.TextButton("Close", on_click=lambda _: self.close_banner())
+                ]
+            )
+            self.page.banner.open = True
+            self.page.update()
+
+    def close_banner(self):
+        """Closes the banner."""
+        if self.page.banner:
+            self.page.banner.open = False
             self.page.update()
 
     def addUsersForm(self) -> ft.Card:
         self.addUser = ft.TextField(label="User", width=250)
         self.addPassword = ft.TextField(label="Password", width=250, password=True, can_reveal_password=True)
-        self.addRole = ft.TextField(label="Role", width=250)
+        self.addRole = ft.Dropdown(
+            label="Role",
+            width=100,
+            options=[
+                ft.dropdown.Option("ADMIN"),
+                ft.dropdown.Option("USER")
+            ]
+        )
 
         addUserButton = ft.ElevatedButton("Add User", on_click=self.addUserToDatabase)
 
@@ -192,14 +314,13 @@ class Admin(ft.View):
         self.controls.clear()
         self.Directory.refresh()
         self.controls.append(navbar(self.page, 2))
-        self.controls.append(
-            ft.Text(f"Welcome, {self.page.session.get('user')}!", font_family="Fira", size=24, weight="bold")
+        self.controls.extend([
+            ft.Text(f"Welcome, {self.page.session.get('user')}!", font_family="Fira", size=24, weight="bold"),
+            ft.TextButton(
+                content=ft.Text("Log Out", font_family="Fira"),
+                on_click=self.logout
+            )]
         )
-        self.controls.append(ft.TextButton(
-            content=ft.Text("Log Out", font_family="Fira"),
-            on_click=self.logout
-        ))
-
         # Add a section for song statistics with a table
         stats = getSongStats(self)
         userlist = dict(sorted(self.userList().items(), key=lambda item: item[1][-1], reverse=True))
@@ -254,8 +375,6 @@ class Admin(ft.View):
             elevation=5
         )
 
-        self.controls.append(stats_card)
-
         # Add the user and song forms in a row for better layout
         forms_row = ft.Row(
             controls=[
@@ -275,8 +394,5 @@ class Admin(ft.View):
             ],
             spacing=20
         )
-
-        self.controls.append(forms_section)
-
-        # Refresh the page to reflect changes
+        self.controls.extend([stats_card,forms_section,self.removeItemsForm()])
         self.page.update()
