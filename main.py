@@ -3,6 +3,7 @@ from src import *
 
 def main(page: ft.Page):
     page.theme_mode = ft.ThemeMode.LIGHT
+    page.scroll = "smooth"
 
     def router(route):
         page.views.clear()
