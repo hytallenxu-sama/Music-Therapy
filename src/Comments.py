@@ -1,5 +1,9 @@
 import flet as ft
-from modules import *
+from modules.AudioDirectory import AudioDirectory
+from modules.Song import Song
+from modules.navbar import *
+from modules.GPT import GPT
+from modules.Tables import *
 from time import *
 t=localtime()
 time_now=str(t.tm_year)+str(t.tm_mon)+str(t.tm_mday)
@@ -14,38 +18,35 @@ class Comments(ft.View):
         self.song_id = None
         self.page = page
         self.page.fonts = {"Fira": "FiraCode.ttf"}
+        self.db_handler = self.page.session.get('database')
         self.playlist: list[Song] = AudioDirectory.playlist
         self.init()
         self.GPT = GPT()
 
-    def getComments(self, song_id:int):
-        cursor = connectDatabase().cursor()
-        cursor.execute(f"SELECT * FROM comments WHERE song_id={song_id}")
-        lines = cursor.fetchall()
-        file = []
-        for line in lines:
-            if len(line) == 3:
-                file.append(line[2])
-        cursor.close()
-        return file
+    def getComments(self, song_id: int):
+        comments = self.db_handler.query_data(Comment, song_id=song_id)
+        return [[comment.comment_id,comment.username,comment.content] for comment in comments]
 
     def sendComment(self,e):
-        conn = connectDatabase()
-        cursor = conn.cursor()
-        cursor.execute(f"INSERT INTO comments (song_id,date,content) VALUES ({self.song_id},{time_now},'{e.control.value}')")
-        conn.commit()
-        cursor.close()
+        self.db_handler.insert_data(
+            Comment,
+            song_id=self.song_id,
+            timestamp=int(time()),
+            content=e.control.value,
+            username=self.page.session.get("user")
+        )
+        self.init()
+        self.page.update()
+        self.db_handler.insert_data(
+            Comment,
+            song_id=self.song_id,
+            timestamp=int(time()),
+            content=self.GPT.autoReply(e.control.value),
+            username="yxnulleath"
+        )
         self.init()
         self.page.update()
 
-        conn = connectDatabase()
-        cursor = conn.cursor()
-        GPT_reply = self.GPT.autoReply(e.control.value)
-        cursor.execute(f"INSERT INTO comments (song_id,date,content) VALUES ({self.song_id},{time_now},'{GPT_reply}')")
-        conn.commit()
-        cursor.close()
-        self.init()
-        self.page.update()
 
     def init(self):
         self.song_id=self.page.session.get('song').song_id
@@ -66,9 +67,12 @@ class Comments(ft.View):
         ]
         comments=self.getComments(self.song_id)
         for each in comments:
+            textVal = f'{each[1]} commented：{each[2]}'
+            if self.page.session.get('role')=='ADMIN':
+                textVal = f'[{each[0]}] {textVal}'
             self.controls.append(
                 ft.ResponsiveRow(
-                    controls=[ft.Text(value=f'Commented：{each}', font_family='Fira')]
+                    controls=[ft.Text(value=textVal, font_family='Fira')]
                 )
             )
 

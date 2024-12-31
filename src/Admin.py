@@ -1,5 +1,10 @@
 import flet as ft
-from modules import *
+from modules.tools import *
+from modules.AudioDirectory import AudioDirectory
+from modules.Tables import *
+from modules.navbar import *
+
+import time
 
 class Admin(ft.View):
     def __init__(self, page: ft.Page):
@@ -10,6 +15,7 @@ class Admin(ft.View):
         )
         self.page = page
         self.page.fonts = {"Fira": "content/FiraCode.ttf"}
+        self.db_handler = self.page.session.get('database')
         self.Directory = AudioDirectory()
         self.playlist = self.Directory.playlist
         self.init()
@@ -38,7 +44,12 @@ class Admin(ft.View):
                 padding=ft.padding.all(20),
                 border=ft.border.all(1, ft.colors.BLACK12),
                 border_radius=10,
-                bgcolor=ft.colors.WHITE
+                bgcolor=ft.colors.WHITE,
+                gradient=ft.LinearGradient(
+                    begin=ft.alignment.Alignment(-1, -1),  # Top-left
+                    end=ft.alignment.Alignment(1, 1),  # Bottom-right
+                    colors=["#FFFED8", "#D6DCFF"],  # Your gradient colors
+                ),
             )
         ]
 
@@ -49,31 +60,14 @@ class Admin(ft.View):
 
     def addTimeStamp(self):
         # Modify the timestamp of the corresponding user to the database
-        try:
-            conn = connectDatabase()
-            cursor = conn.cursor()
-            #update unix time
-            import time
-            cursor.execute("UPDATE users SET LoginTime = ? WHERE username = ?", (int(time.time()), self.page.session.get("user")))
-            conn.commit()
-            conn.close()
-        except Exception as e:
-            logger("ERROR", f"Failed to update timestamp: {e}")
+        self.db_handler.update_data(UserData, filters={'username':self.page.session.get("user")}, updates={'LoginTime':int(time.time())})
 
     def userList(self):
-        try:
-            users = {}
-            conn = connectDatabase()
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM users")
-            lines = cursor.fetchall()
-            for line in lines:
-                users[line[0]] = [line[1], line[2], line[3]]
-            conn.close()
-            return users
-        except Exception as e:
-            logger("ERROR", f"Failed to retrieve user list: {e}")
-            return {}
+        users = {}
+        for user in self.db_handler.query_data(UserData):
+            print(user.username)
+            users[user.username] = [user.password, user.role, user.LoginTime]
+        return users
 
     def submitInfo(self, e):
         # Hash the password input
@@ -102,12 +96,7 @@ class Admin(ft.View):
 
     def removeUserFromDatabase(self, e):
         try:
-            conn = connectDatabase()
-            cursor = conn.cursor()
-            cursor.execute("DELETE FROM users WHERE username = ?", (self.removeUser.value,))
-            conn.commit()
-            conn.close()
-
+            self.db_handler.delete_data(UserData, username=self.removeUser.value)
             # Show a success message in a banner
             self.page.banner = ft.Banner(
                 content=ft.Text("User removed successfully!", color=ft.colors.GREEN),
@@ -135,11 +124,7 @@ class Admin(ft.View):
 
     def removeSongFromDatabase(self, e):
         try:
-            conn = connectDatabase()
-            cursor = conn.cursor()
-            cursor.execute("DELETE FROM songs WHERE song_name = ?", (self.removeSong.value,))
-            conn.commit()
-            conn.close()
+            self.db_handler.delete_data(Songs, song_name=self.removeSong.value)
 
             # Show a success message in a banner
             self.page.banner = ft.Banner(
@@ -186,7 +171,12 @@ class Admin(ft.View):
                     alignment=ft.MainAxisAlignment.START,
                     spacing=10
                 ),
-                padding=ft.padding.all(15)
+                padding=ft.padding.all(15),
+                gradient=ft.LinearGradient(
+                    begin=ft.alignment.Alignment(-1, -1),  # Top-left
+                    end=ft.alignment.Alignment(1, 1),  # Bottom-right
+                    colors=["#FFFED8", "#D6DCFF"],  # Your gradient colors
+                ),
             ),
             elevation=5
         )
@@ -194,12 +184,7 @@ class Admin(ft.View):
 
     def addSongToDatabase(self, e):
         try:
-            conn = connectDatabase()
-            cursor = conn.cursor()
-            cursor.execute("INSERT INTO songs (song_name, artist, audio_path, img_src, counts) VALUES (?,?,?,?,?)",
-                           (self.addSongName.value, self.addArtist.value, self.addAudio.value, self.addSrc.value, 0))
-            conn.commit()
-            conn.close()
+            self.db_handler.insert_data(Songs, song_name=self.addSongName.value, artist=self.addArtist.value, audio_path = self.addAudio.value, img_src = self.addSrc.value, counts=0)
             # Show a success message to the user
             self.controls.append(ft.Text("Song added successfully!", color=ft.colors.GREEN))
             self.page.update()
@@ -210,13 +195,7 @@ class Admin(ft.View):
 
     def addUserToDatabase(self, e):
         try:
-            conn = connectDatabase()
-            cursor = conn.cursor()
-            cursor.execute("INSERT INTO users (username, password, role) VALUES (?,?,?)",
-                           (self.addUser.value, hash(self.addPassword.value), self.addRole.value))
-            conn.commit()
-            conn.close()
-
+            self.db_handler.insert_data(UserData, username=self.addUser.value, password=hash(self.addPassword.value), role=self.addRole.value, LoginTime=0)
             # Show a success message in a banner
             self.page.banner = ft.Banner(
                 content=ft.Text("User added successfully!", color=ft.colors.GREEN),
@@ -275,7 +254,12 @@ class Admin(ft.View):
                     alignment=ft.MainAxisAlignment.START,
                     spacing=10
                 ),
-                padding=ft.padding.all(15)
+                padding=ft.padding.all(15),
+                gradient=ft.LinearGradient(
+                    begin=ft.alignment.Alignment(-1, -1),  # Top-left
+                    end=ft.alignment.Alignment(1, 1),  # Bottom-right
+                    colors=["#FFFED8", "#D6DCFF"],  # Your gradient colors
+                ),
             ),
             elevation=5
         )
@@ -303,7 +287,12 @@ class Admin(ft.View):
                     alignment=ft.MainAxisAlignment.START,
                     spacing=10
                 ),
-                padding=ft.padding.all(15)
+                padding=ft.padding.all(15),
+                gradient=ft.LinearGradient(
+                    begin=ft.alignment.Alignment(-1, -1),  # Top-left
+                    end=ft.alignment.Alignment(1, 1),  # Bottom-right
+                    colors=["#FFFED8", "#D6DCFF"],  # Your gradient colors
+                ),
             ),
             elevation=5
         )
@@ -363,14 +352,19 @@ class Admin(ft.View):
                 content=ft.Column(
                     controls=[
                         user_table,
-                        ft.Text("Song Play Statistics", size=18, weight="bold", font_family="Fira"),
+                        ft.Text("Song Statistics", size=18, weight="bold", font_family="Fira"),
                         table,
                         ft.Image(src_base64=returnBase64(self=self, data=getDailyData(self)))
                     ],
                     alignment=ft.MainAxisAlignment.START,
                     spacing=10
                 ),
-                padding=ft.padding.all(15)
+                padding=ft.padding.all(15),
+                gradient=ft.LinearGradient(
+                    begin=ft.alignment.Alignment(-1, -1),  # Top-left
+                    end=ft.alignment.Alignment(1, 1),  # Bottom-right
+                    colors=["#FFFED8", "#D6DCFF"],  # Your gradient colors
+                ),
             ),
             elevation=5
         )

@@ -4,21 +4,21 @@ import io
 import base64
 from hashlib import sha256
 import time
+from modules.Database import Database
+from modules.Tables import *
+
+db_handler = Database('sqlite:///SQLite/database.db')
+logger_handler = Database('sqlite:///SQLite/logs.db')
+
 def logger(type, message):
-    try:
-        conn = connectDatabase()
-        cursor = conn.cursor()
-        cursor.execute("INSERT INTO logs (type, info, time) VALUES (?,?,?)", (type, message, int(time.time())))
-        conn.commit()
-        conn.close()
-    except Exception as e:
-        print(f"Error logging: {e}")
-        return False
-    return True
+    new_log = logger_handler.insert_data(Log, INFO_TYPE=type, CONTENT=message, TIMESTAMP=int(time.time()))
+    if new_log:
+        return True
+    return False
 
 def connectDatabase():
     try:
-        conn = sqlite3.connect('modules/database.db')
+        conn = sqlite3.connect('SQLite/database.db')
         return conn
     except Exception as e:
         print(e)
@@ -30,31 +30,18 @@ def getSong(self, id: int):
             return i
 
 def getCounts(self, id: int) -> int:
-    cursor=connectDatabase().cursor()
-    cursor.execute(f"SELECT counts FROM songs WHERE song_id={id}")
-    count = cursor.fetchone()
-    if count:
-        cursor.close()
-        return count[0]
-    return -1
+    res = db_handler.query_data(Songs, song_id=id)
+    for i in res:
+        return i.counts
 
 
 def getSongStats(self) -> list:
-    cursor=connectDatabase().cursor()
-    cursor.execute("SELECT song_id, counts FROM songs")
-    lines = cursor.fetchall()
-    # Extract song statistics and prepare a list of tuples (count, song_id)
+    lines = db_handler.query_data(Songs)
     song_stats = []
     for line in lines:
-        if(len(line)==2):
-            song_stats.append((line[1],line[0]))
-    cursor.close()
-    # Sort song statistics by count in descending order
+        song_stats.append([line.counts,line.song_id])
     song_stats.sort(reverse=True, key=lambda x: x[0])
-
-    # Retrieve song objects based on sorted statistics
     top_songs = [getSong(self,song_id) for _, song_id in song_stats]
-
     return top_songs
 
 

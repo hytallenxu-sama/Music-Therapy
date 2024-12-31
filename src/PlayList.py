@@ -1,5 +1,7 @@
 import flet as ft
-from modules import *
+from modules.AudioDirectory import AudioDirectory
+from modules.Song import Song
+from modules.navbar import *
 
 class PlayList(ft.View):
     def __init__(self, page: ft.Page):

@@ -2,12 +2,13 @@ import os
 import json
 from openai import AzureOpenAI
 from modules.tools import *
+from modules.Database import Database
+from modules.Tables import *
 
 class GPT(object):
     def __init__(self):
         ENDPOINT_URL, AZURE_OPENAI_API_KEY = self.getSecrets()
         endpoint = os.getenv("ENDPOINT_URL", ENDPOINT_URL)
-        deployment = os.getenv("DEPLOYMENT_NAME", "gpt-4o-mini")
         subscription_key = os.getenv("AZURE_OPENAI_API_KEY", AZURE_OPENAI_API_KEY)
         self.client = AzureOpenAI(
             azure_endpoint=endpoint,
@@ -16,13 +17,11 @@ class GPT(object):
         )
 
     def getSecrets(self): # get secrets from database
-        conn = connectDatabase()
-        cursor = conn.cursor()
-        cursor.execute("SELECT ENDPOINT, API_KEY FROM secrets")
-        lines = cursor.fetchall()
-        return lines[0][0],lines[0][1]
+        db_handler = Database('sqlite:///SQLite/database.db')
+        res = db_handler.query_data(Secrets)
+        return res[0].ENDPOINT, res[0].API_KEY
 
-    def autoReply(self, message):
+    def autoReply(self, message, assistant_message=[]):
         chat_prompt = [
             {
                 "role": "system",

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<dataSource name="database.db">
+<dataSource name="logs.db">
   <database-model serializer="dbm" dbms="SQLITE" family-id="SQLITE" format-version="4.53">
     <root id="1">
       <ServerVersion>3.45.1</ServerVersion>
@@ -499,7 +499,7 @@
     </routine>
     <schema id="191" parent="1" name="main">
       <Current>1</Current>
-      <LastIntrospectionLocalTimestamp>2024-12-31.10:16:45</LastIntrospectionLocalTimestamp>
+      <LastIntrospectionLocalTimestamp>2024-12-31.10:15:05</LastIntrospectionLocalTimestamp>
     </schema>
     <argument id="192" parent="16">
       <ArgumentDirection>R</ArgumentDirection>
@@ -1590,137 +1590,44 @@
     <argument id="554" parent="190">
       <Position>1</Position>
     </argument>
-    <table id="555" parent="191" name="AutoReply"/>
-    <table id="556" parent="191" name="comments">
-      <Strict>1</Strict>
-    </table>
-    <table id="557" parent="191" name="daily_stats"/>
-    <table id="558" parent="191" name="secrets"/>
-    <table id="559" parent="191" name="songs"/>
-    <table id="560" parent="191" name="sqlite_master">
+    <table id="555" parent="191" name="LOGS"/>
+    <table id="556" parent="191" name="sqlite_master">
       <System>1</System>
     </table>
-    <table id="561" parent="191" name="sqlite_sequence">
-      <System>1</System>
-    </table>
-    <table id="562" parent="191" name="users"/>
-    <column id="563" parent="555" name="TOKENS">
-      <Position>1</Position>
-      <StoredType>integer|0s</StoredType>
-    </column>
-    <column id="564" parent="556" name="comment_id">
-      <AutoIncrement>1</AutoIncrement>
+    <column id="557" parent="555" name="INFO_TYPE">
       <NotNull>1</NotNull>
       <Position>1</Position>
-      <StoredType>integer|0s</StoredType>
-    </column>
-    <column id="565" parent="556" name="username">
-      <Position>2</Position>
       <StoredType>TEXT|0s</StoredType>
     </column>
-    <column id="566" parent="556" name="song_id">
+    <column id="558" parent="555" name="CONTENT">
+      <NotNull>1</NotNull>
+      <Position>2</Position>
+      <StoredType>integer|0s</StoredType>
+    </column>
+    <column id="559" parent="555" name="TIMESTAMP">
+      <NotNull>1</NotNull>
       <Position>3</Position>
       <StoredType>integer|0s</StoredType>
     </column>
-    <column id="567" parent="556" name="content">
-      <Position>4</Position>
-      <StoredType>TEXT|0s</StoredType>
-    </column>
-    <column id="568" parent="556" name="timestamp">
-      <Position>5</Position>
-      <StoredType>integer|0s</StoredType>
-    </column>
-    <key id="569" parent="556" name="comment_id">
-      <ColNames>comment_id</ColNames>
-      <Primary>1</Primary>
-    </key>
-    <column id="570" parent="557" name="date">
-      <Position>1</Position>
-      <StoredType>integer|0s</StoredType>
-    </column>
-    <column id="571" parent="557" name="counts">
-      <Position>2</Position>
-      <StoredType>integer|0s</StoredType>
-    </column>
-    <column id="572" parent="558" name="ENDPOINT">
+    <column id="560" parent="556" name="type">
       <Position>1</Position>
       <StoredType>TEXT|0s</StoredType>
     </column>
-    <column id="573" parent="558" name="API_KEY">
+    <column id="561" parent="556" name="name">
       <Position>2</Position>
       <StoredType>TEXT|0s</StoredType>
     </column>
-    <column id="574" parent="559" name="song_id">
-      <Position>1</Position>
-      <StoredType>INTEGER|0s</StoredType>
-    </column>
-    <column id="575" parent="559" name="song_name">
-      <Position>2</Position>
-      <StoredType>TEXT|0s</StoredType>
-    </column>
-    <column id="576" parent="559" name="artist">
+    <column id="562" parent="556" name="tbl_name">
       <Position>3</Position>
       <StoredType>TEXT|0s</StoredType>
     </column>
-    <column id="577" parent="559" name="audio_path">
-      <Position>4</Position>
-      <StoredType>TEXT|0s</StoredType>
-    </column>
-    <column id="578" parent="559" name="img_src">
-      <Position>5</Position>
-      <StoredType>TEXT|0s</StoredType>
-    </column>
-    <column id="579" parent="559" name="counts">
-      <Position>6</Position>
-      <StoredType>integer|0s</StoredType>
-    </column>
-    <key id="580" parent="559">
-      <ColNames>song_id</ColNames>
-      <Primary>1</Primary>
-    </key>
-    <column id="581" parent="560" name="type">
-      <Position>1</Position>
-      <StoredType>TEXT|0s</StoredType>
-    </column>
-    <column id="582" parent="560" name="name">
-      <Position>2</Position>
-      <StoredType>TEXT|0s</StoredType>
-    </column>
-    <column id="583" parent="560" name="tbl_name">
-      <Position>3</Position>
-      <StoredType>TEXT|0s</StoredType>
-    </column>
-    <column id="584" parent="560" name="rootpage">
+    <column id="563" parent="556" name="rootpage">
       <Position>4</Position>
       <StoredType>INT|0s</StoredType>
     </column>
-    <column id="585" parent="560" name="sql">
+    <column id="564" parent="556" name="sql">
       <Position>5</Position>
       <StoredType>TEXT|0s</StoredType>
-    </column>
-    <column id="586" parent="561" name="name">
-      <Position>1</Position>
-    </column>
-    <column id="587" parent="561" name="seq">
-      <Position>2</Position>
-    </column>
-    <column id="588" parent="562" name="username">
-      <Position>1</Position>
-      <StoredType>TEXT|0s</StoredType>
-    </column>
-    <column id="589" parent="562" name="password">
-      <Position>2</Position>
-      <StoredType>TEXT|0s</StoredType>
-    </column>
-    <column id="590" parent="562" name="role">
-      <Position>3</Position>
-      <StoredType>TEXT|0s</StoredType>
-    </column>
-    <column id="591" parent="562" name="LoginTime">
-      <DefaultExpression>1704038400</DefaultExpression>
-      <NotNull>1</NotNull>
-      <Position>4</Position>
-      <StoredType>integer|0s</StoredType>
     </column>
   </database-model>
 </dataSource>

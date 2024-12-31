@@ -1,9 +1,13 @@
 import flet as ft
 from src import *
+from modules.Database import Database
 
 def main(page: ft.Page):
     page.theme_mode = ft.ThemeMode.LIGHT
     page.scroll = "smooth"
+    page.session.set("user", "Anonymous")
+    database = Database('sqlite:///SQLite/database.db')
+    page.session.set("database", database)
 
     def router(route):
         page.views.clear()
