@@ -5,6 +5,8 @@ from modules.Tables import *
 from modules.navbar import *
 
 import time
+import threading
+from concurrent.futures import ThreadPoolExecutor
 
 class Admin(ft.View):
     def __init__(self, page: ft.Page):
@@ -18,7 +20,9 @@ class Admin(ft.View):
         self.db_handler = self.page.session.get('database')
         self.Directory = AudioDirectory()
         self.playlist = self.Directory.playlist
+        self.executor = ThreadPoolExecutor(max_workers=10)
         self.init()
+
 
     def init(self):
         # Initialize login fields
@@ -58,9 +62,17 @@ class Admin(ft.View):
             #self.addTimeStamp()
             self.goAdminPage()
 
+    def execute_in_thread(self, func, *args, **kwargs):
+        """Helper to execute tasks in a separate thread."""
+        self.executor.submit(func, *args, **kwargs)
+
     def addTimeStamp(self):
-        # Modify the timestamp of the corresponding user to the database
-        self.db_handler.update_data(UserData, filters={'username':self.page.session.get("user")}, updates={'LoginTime':int(time.time())})
+        """Update the timestamp in the database."""
+        def update_timestamp():
+            self.db_handler.update_data(UserData, filters={'username': self.page.session.get("user")}, updates={'LoginTime': int(time.time())})
+
+        # Execute in a thread
+        self.execute_in_thread(update_timestamp)
 
     def userList(self):
         users = {}
@@ -222,9 +234,7 @@ class Admin(ft.View):
 
     def close_banner(self):
         """Closes the banner."""
-        if self.page.banner:
-            self.page.banner.open = False
-            self.page.update()
+        pass
 
     def addUsersForm(self) -> ft.Card:
         self.addUser = ft.TextField(label="User", width=250)
@@ -301,91 +311,92 @@ class Admin(ft.View):
         # Clear all controls and add admin-specific controls
         self.controls.clear()
         self.Directory.refresh()
-        self.controls.append(navbar(self.page, 2))
-        self.controls.extend([
-            ft.Text(f"Welcome, {self.page.session.get('user')}!", font_family="Fira", size=24, weight="bold"),
-            ft.TextButton(
-                content=ft.Text("Log Out", font_family="Fira"),
-                on_click=self.logout
-            )]
-        )
-        # Add a section for song statistics with a table
-        stats = getSongStats(self)
-        userlist = dict(sorted(self.userList().items(), key=lambda item: item[1][-1], reverse=True))
-        user_table = ft.DataTable(
-            columns=[
-                ft.DataColumn(ft.Text("User", font_family='Fira')),
-                ft.DataColumn(ft.Text("Last Login Time", font_family='Fira')),
-            ],
-            rows=[
-                ft.DataRow(
-                    cells=[
-                        ft.DataCell(ft.Text(user, font_family='Fira')),
-                        ft.DataCell(ft.Text(unix_to_human(userlist[user][-1]), font_family='Fira'))
-                    ]
-                ) for user in userlist
-            ]
-        )
+        def load_admin_page():
+            self.controls.append(navbar(self.page, 2))
+            self.controls.extend([
+                ft.Text(f"Welcome, {self.page.session.get('user')}!", font_family="Fira", size=24, weight="bold"),
+                ft.TextButton(
+                    content=ft.Text("Log Out", font_family="Fira"),
+                    on_click=self.logout
+                )]
+            )
+            # Add a section for song statistics with a table
+            stats = getSongStats(self)
+            userlist = dict(sorted(self.userList().items(), key=lambda item: item[1][-1], reverse=True))
+            user_table = ft.DataTable(
+                columns=[
+                    ft.DataColumn(ft.Text("User", font_family='Fira')),
+                    ft.DataColumn(ft.Text("Last Login Time", font_family='Fira')),
+                ],
+                rows=[
+                    ft.DataRow(
+                        cells=[
+                            ft.DataCell(ft.Text(user, font_family='Fira')),
+                            ft.DataCell(ft.Text(unix_to_human(userlist[user][-1]), font_family='Fira'))
+                        ]
+                    ) for user in userlist
+                ]
+            )
 
+            table = ft.DataTable(
+                columns=[
+                    ft.DataColumn(ft.Text("Title", font_family='Fira')),
+                    ft.DataColumn(ft.Text("Artist", font_family='Fira')),
+                    ft.DataColumn(ft.Text("Times Played", font_family='Fira')),
+                ],
+                rows=[
+                    ft.DataRow(
+                        cells=[
+                            ft.DataCell(ft.Text(song.song_name, font_family='Fira')),
+                            ft.DataCell(ft.Text(song.artist, font_family='Fira')),
+                            ft.DataCell(ft.Text(str(getCounts(self, song.song_id)), font_family='Fira')),
+                        ]
+                    ) for song in stats
+                ]
+            )
 
-        table = ft.DataTable(
-            columns=[
-                ft.DataColumn(ft.Text("Title", font_family='Fira')),
-                ft.DataColumn(ft.Text("Artist", font_family='Fira')),
-                ft.DataColumn(ft.Text("Times Played", font_family='Fira')),
-            ],
-            rows=[
-                ft.DataRow(
-                    cells=[
-                        ft.DataCell(ft.Text(song.song_name, font_family='Fira')),
-                        ft.DataCell(ft.Text(song.artist, font_family='Fira')),
-                        ft.DataCell(ft.Text(str(getCounts(self, song.song_id)), font_family='Fira')),
-                    ]
-                ) for song in stats
-            ]
-        )
-
-        # Wrap the data table and chart in a card
-        stats_card = ft.Card(
-            content=ft.Container(
-                content=ft.Column(
-                    controls=[
-                        user_table,
-                        ft.Text("Song Statistics", size=18, weight="bold", font_family="Fira"),
-                        table,
-                        ft.Image(src_base64=returnBase64(self=self, data=getDailyData(self)))
-                    ],
-                    alignment=ft.MainAxisAlignment.START,
-                    spacing=10
+            # Wrap the data table and chart in a card
+            stats_card = ft.Card(
+                content=ft.Container(
+                    content=ft.Column(
+                        controls=[
+                            user_table,
+                            ft.Text("Song Statistics", size=18, weight="bold", font_family="Fira"),
+                            table,
+                            ft.Image(src_base64=returnBase64(self=self, data=getDailyData(self)))
+                        ],
+                        alignment=ft.MainAxisAlignment.START,
+                        spacing=10
+                    ),
+                    padding=ft.padding.all(15),
+                    gradient=ft.LinearGradient(
+                        begin=ft.alignment.Alignment(-1, -1),  # Top-left
+                        end=ft.alignment.Alignment(1, 1),  # Bottom-right
+                        colors=["#FFFED8", "#D6DCFF"],  # Your gradient colors
+                    ),
                 ),
-                padding=ft.padding.all(15),
-                gradient=ft.LinearGradient(
-                    begin=ft.alignment.Alignment(-1, -1),  # Top-left
-                    end=ft.alignment.Alignment(1, 1),  # Bottom-right
-                    colors=["#FFFED8", "#D6DCFF"],  # Your gradient colors
-                ),
-            ),
-            elevation=5
-        )
+                elevation=5
+            )
 
-        # Add the user and song forms in a row for better layout
-        forms_row = ft.Row(
-            controls=[
-                self.addSongsForm(),
-                self.addUsersForm()
-            ],
-            spacing=20,
-            wrap=True,
-            alignment=ft.MainAxisAlignment.SPACE_BETWEEN
-        )
+            # Add the user and song forms in a row for better layout
+            forms_row = ft.Row(
+                controls=[
+                    self.addSongsForm(),
+                    self.addUsersForm()
+                ],
+                spacing=20,
+                wrap=True,
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN
+            )
 
-        # Wrap forms in a column for further layout organization
-        forms_section = ft.Column(
-            controls=[
-                ft.Text("Administration Tools", size=24, weight="bold", font_family="Fira"),
-                forms_row
-            ],
-            spacing=20
-        )
-        self.controls.extend([stats_card,forms_section,self.removeItemsForm()])
-        self.page.update()
+            # Wrap forms in a column for further layout organization
+            forms_section = ft.Column(
+                controls=[
+                    ft.Text("Administration Tools", size=24, weight="bold", font_family="Fira"),
+                    forms_row
+                ],
+                spacing=20
+            )
+            self.controls.extend([stats_card, forms_section, self.removeItemsForm()])
+            self.page.update()
+        self.execute_in_thread(load_admin_page)
