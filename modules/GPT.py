@@ -44,7 +44,6 @@ class GPT(object):
         messages = chat_prompt
         text, prompt_tokens, output_tokens = self.chat(messages)
         logger("AutoReply", f"{str(int(prompt_tokens)+int(output_tokens))} tokens used to reply: {text}")
-        insertTokens(int(prompt_tokens)+int(output_tokens))
         return text
 
     def chat(self, messages):

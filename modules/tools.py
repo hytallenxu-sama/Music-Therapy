@@ -16,13 +16,6 @@ def logger(type, message):
         return True
     return False
 
-def connectDatabase():
-    try:
-        conn = sqlite3.connect('SQLite/database.db')
-        return conn
-    except Exception as e:
-        print(e)
-    return None
 
 def getSong(self, id: int):
     for i in self.playlist:
@@ -74,14 +67,10 @@ def returnBase64(self,data:dict):
     return img_data
 
 def getDailyData(self):
-    cursor=connectDatabase().cursor()
-    cursor.execute("SELECT * FROM daily_stats")
-    lines = cursor.fetchall()
+    lines = db_handler.query_data(Daily)
     res = {}
     for line in lines:
-        if len(line) == 2:
-            res[str(line[0])] = line[1]
-    cursor.close()
+        res[line.date]=line.counts
     return res
 
 def hash(password:str):
@@ -95,10 +84,3 @@ def unix_to_human(unix_timestamp):
     normal_time = datetime.fromtimestamp(unix_timestamp)
     # Format as a readable string
     return normal_time.strftime('%Y-%m-%d %H:%M:%S')
-
-def insertTokens(token:int):
-    conn = connectDatabase()
-    cursor = conn.cursor()
-    cursor.execute('INSERT INTO AutoReply (TOKENS) VALUES (?)', (token,))
-    conn.commit()
-    conn.close()

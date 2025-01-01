@@ -65,7 +65,6 @@ class Admin(ft.View):
     def userList(self):
         users = {}
         for user in self.db_handler.query_data(UserData):
-            print(user.username)
             users[user.username] = [user.password, user.role, user.LoginTime]
         return users
 
