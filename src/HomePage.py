@@ -3,6 +3,9 @@ from modules.tools import *
 from modules.AudioDirectory import AudioDirectory
 from modules.Song import Song
 from modules.Sidebar import Sidebar  # Import the Sidebar class
+import threading
+from concurrent.futures import ThreadPoolExecutor
+
 
 class HomePage(ft.View):
     def __init__(self, page: ft.Page):
@@ -15,10 +18,15 @@ class HomePage(ft.View):
         self.Directory = AudioDirectory()
         self.playlist = self.Directory.playlist
         self.page.fonts = {"Fira": "FiraCode.ttf"}
+        self.executor = ThreadPoolExecutor(max_workers=10)
 
         # Initialize the sidebar
         self.sidebar = Sidebar(page)
 
+        # Submit the task to load the homepage content in a thread
+        self.executor.submit(self.load_home_page)
+
+    def load_home_page(self):
         # Main content container with bottom-rounded end
         self.main_content = ft.Container(
             width=self.page.window_width,
@@ -51,8 +59,9 @@ class HomePage(ft.View):
             )
         )
 
-        # Add songs to the homepage
-        self.add_fav_to_home()
+        # Load songs in a separate thread to avoid blocking the UI
+        self.executor.submit(self.add_fav_to_home)
+        self.page.update()
 
     def create_main_column(self):
         PINK = "#eb06ff"
@@ -134,6 +143,7 @@ class HomePage(ft.View):
                 self.song_list_column.controls.append(song_row)
             except Exception as e:
                 logger("ERROR", f"Error adding songs: {e}")
+        self.page.update()
 
     def toggle_song(self, e):
         self.page.session.set("song", e.control.data)

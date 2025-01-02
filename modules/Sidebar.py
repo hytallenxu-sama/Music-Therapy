@@ -13,7 +13,9 @@ class Sidebar:
                 end=ft.alignment.Alignment(1, 1),  # Bottom-right
                 colors=["#FFD8E8", "#D8FFE0"],  # Gradient colors
             ),
-            border_radius=ft.border_radius.only(top_left=35, bottom_left=35),
+            border_radius=ft.border_radius.only(
+                top_left=35, top_right=35, bottom_left=35, bottom_right=35
+            ),
             animate=ft.animation.Animation(600, ft.AnimationCurve.DECELERATE),
             padding=ft.padding.all(20),
             visible=False,  # Sidebar starts hidden

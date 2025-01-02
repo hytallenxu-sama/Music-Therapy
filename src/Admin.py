@@ -2,18 +2,19 @@ import flet as ft
 from modules.tools import *
 from modules.AudioDirectory import AudioDirectory
 from modules.Tables import *
-from modules.navbar import *
+from modules.Sidebar import Sidebar  # Import the Sidebar class
 
 import time
-import threading
 from concurrent.futures import ThreadPoolExecutor
+
 
 class Admin(ft.View):
     def __init__(self, page: ft.Page):
         super().__init__(
             route='/settings',
             horizontal_alignment='center',
-            scroll='ADAPTIVE'
+            vertical_alignment='start',
+            scroll='ALWAYS'
         )
         self.page = page
         self.page.fonts = {"Fira": "content/FiraCode.ttf"}
@@ -21,46 +22,108 @@ class Admin(ft.View):
         self.Directory = AudioDirectory()
         self.playlist = self.Directory.playlist
         self.executor = ThreadPoolExecutor(max_workers=10)
-        self.init()
 
+        # Initialize Sidebar
+        self.sidebar = Sidebar(self.page)
 
-    def init(self):
-        # Initialize login fields
-        self.user = ft.TextField(label="Username", width=500)
-        self.password = ft.TextField(label="Password", password=True, can_reveal_password=True, width=500)
-        self.submitButton = ft.ElevatedButton("Submit", on_click=self.submitInfo)
+        # Create a container for the main content without fixed height
+        self.main_content = ft.Container(
+            width=self.page.window_width,
+            height=self.page.window_height,
+            bgcolor="#FFFED8",
+            gradient=ft.LinearGradient(
+                begin=ft.alignment.Alignment(-1, -1),  # Top-left
+                end=ft.alignment.Alignment(1, 1),      # Bottom-right
+                colors=["#FFFED8", "#D6DCFF"],          # Gradient colors
+            ),
+            border_radius=ft.border_radius.only(
+                top_left=35, top_right=35, bottom_left=35, bottom_right=35
+            ),
+            animate=ft.animation.Animation(600, ft.AnimationCurve.DECELERATE),
+            animate_scale=ft.animation.Animation(400, curve="decelerate"),
+            padding=ft.padding.only(left=20, right=20),
+            content=ft.ListView(
+                controls=[],  # Will be populated by self.init() or goAdminPage()
+                spacing=10,
+                padding=ft.padding.only(top=30)
+            )
+        )
 
-        # Populate initial controls
+        # Assign the main_content to the sidebar for layout adjustments
+        self.sidebar.main_content = self.main_content
+
+        # Stack to hold both the main content and the sidebar
         self.controls = [
-            navbar(self.page, 2),
-            ft.Container(
-                content=ft.Column(
-                    controls=[
-                        self.user,
-                        self.password,
-                        self.submitButton
-                    ],
-                    alignment=ft.MainAxisAlignment.CENTER,
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                    spacing=10
-                ),
-                alignment=ft.alignment.center,
-                padding=ft.padding.all(20),
-                border=ft.border.all(1, ft.colors.BLACK12),
-                border_radius=10,
-                bgcolor=ft.colors.WHITE,
-                gradient=ft.LinearGradient(
-                    begin=ft.alignment.Alignment(-1, -1),  # Top-left
-                    end=ft.alignment.Alignment(1, 1),  # Bottom-right
-                    colors=["#FFFED8", "#D6DCFF"],  # Your gradient colors
-                ),
+            ft.Stack(
+                controls=[
+                    self.main_content,      # Main content at the bottom layer
+                    self.sidebar.sidebar,  # Sidebar on top layer
+                ]
             )
         ]
+        # Initialize the login or admin page based on session
+        self.init()
+
+    def init(self):
+        """Initialize the login form or navigate to admin page if already logged in."""
+        # Clear any existing controls in main_content
+        self.main_content.content.controls.clear()
 
         # Check for an existing session
         if self.page.session.contains_key("pw") and "ADMIN" in self.page.session.get("role"):
-            #self.addTimeStamp()
+            # Automatically navigate to admin page if already logged in
             self.goAdminPage()
+        else:
+            # Initialize login fields
+            self.user = ft.TextField(label="Username", width=500, autofocus=True)
+            self.password = ft.TextField(label="Password", password=True, can_reveal_password=True, width=500)
+            self.submitButton = ft.ElevatedButton("Submit", on_click=self.submitInfo)
+
+            # Header with menu button (enabled but functionality may be limited before login)
+            header = ft.Row(
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                controls=[
+                    ft.IconButton(
+                        icon=ft.icons.MENU,
+                        on_click=self.sidebar.shrink_sidebar,  # Use sidebar's shrink method
+                        icon_color="black",
+                    ),
+                    ft.Row(
+                        controls=[
+                            ft.Icon(ft.icons.SEARCH, color="black"),
+                            ft.Icon(ft.icons.NOTIFICATIONS_OUTLINED, color="black"),
+                        ]
+                    ),
+                ]
+            )
+
+            # Populate main_content with login controls
+            self.main_content.content.controls.extend([
+                header,
+                ft.Container(
+                    content=ft.Column(
+                        controls=[
+                            self.user,
+                            self.password,
+                            self.submitButton
+                        ],
+                        alignment=ft.MainAxisAlignment.CENTER,
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                        spacing=10
+                    ),
+                    alignment=ft.alignment.center,
+                    padding=ft.padding.all(20),
+                    border=ft.border.all(1, ft.colors.BLACK12),
+                    border_radius=10,
+                    bgcolor=ft.colors.WHITE,
+                    gradient=ft.LinearGradient(
+                        begin=ft.alignment.Alignment(-1, -1),  # Top-left
+                        end=ft.alignment.Alignment(1, 1),      # Bottom-right
+                        colors=["#FFFED8", "#D6DCFF"],          # Gradient colors
+                    ),
+                )
+            ])
+            self.page.update()
 
     def execute_in_thread(self, func, *args, **kwargs):
         """Helper to execute tasks in a separate thread."""
@@ -69,18 +132,23 @@ class Admin(ft.View):
     def addTimeStamp(self):
         """Update the timestamp in the database."""
         def update_timestamp():
-            self.db_handler.update_data(UserData, filters={'username': self.page.session.get("user")}, updates={'LoginTime': int(time.time())})
-
+            self.db_handler.update_data(
+                UserData,
+                filters={'username': self.page.session.get("user")},
+                updates={'LoginTime': int(time.time())}
+            )
         # Execute in a thread
         self.execute_in_thread(update_timestamp)
 
     def userList(self):
+        """Retrieve the list of users from the database."""
         users = {}
         for user in self.db_handler.query_data(UserData):
             users[user.username] = [user.password, user.role, user.LoginTime]
         return users
 
     def submitInfo(self, e):
+        """Handle the login submission."""
         # Hash the password input
         pw = hash(self.password.value)
         users = self.userList()
@@ -95,10 +163,17 @@ class Admin(ft.View):
                 self.goAdminPage()
         else:
             # Show an error message if authentication fails
-            self.controls.append(ft.Text("Invalid Username or Password", color=ft.colors.RED))
+            error_message = ft.Text("Invalid Username or Password", color=ft.colors.RED)
+            # Remove existing error messages to avoid duplicates
+            self.main_content.content.controls = [
+                ctrl for ctrl in self.main_content.content.controls
+                if not (isinstance(ctrl, ft.Text) and ctrl.color == ft.colors.RED)
+            ]
+            self.main_content.content.controls.append(error_message)
             self.page.update()
 
     def logout(self, e):
+        """Handle the logout action."""
         # Clear session and reinitialize login page
         self.page.session.remove("pw")
         self.page.session.remove("user")
@@ -106,63 +181,24 @@ class Admin(ft.View):
         self.page.update()
 
     def removeUserFromDatabase(self, e):
+        """Remove a user from the database."""
         try:
             self.db_handler.delete_data(UserData, username=self.removeUser.value)
-            # Show a success message in a banner
-            self.page.banner = ft.Banner(
-                content=ft.Text("User removed successfully!", color=ft.colors.GREEN),
-                bgcolor=ft.colors.WHITE,
-                actions=[
-                    ft.TextButton("Close", on_click=lambda _: self.close_banner())
-                ]
-            )
-            self.page.banner.open = True
-            self.page.update()
-
         except Exception as e:
             logger("ERROR", f"Failed to remove user: {e}")
 
-            # Show an error message in a banner
-            self.page.banner = ft.Banner(
-                content=ft.Text("Failed to remove user. Please try again.", color=ft.colors.RED),
-                bgcolor=ft.colors.WHITE,
-                actions=[
-                    ft.TextButton("Close", on_click=lambda _: self.close_banner())
-                ]
-            )
-            self.page.banner.open = True
-            self.page.update()
-
     def removeSongFromDatabase(self, e):
+        """Remove a song from the database."""
         try:
             self.db_handler.delete_data(Songs, song_name=self.removeSong.value)
-
-            # Show a success message in a banner
-            self.page.banner = ft.Banner(
-                content=ft.Text("Song removed successfully!", color=ft.colors.GREEN),
-                bgcolor=ft.colors.WHITE,
-                actions=[
-                    ft.TextButton("Close", on_click=lambda _: self.close_banner())
-                ]
-            )
-            self.page.banner.open = True
             self.page.update()
 
         except Exception as e:
             logger("ERROR", f"Failed to remove song: {e}")
-
-            # Show an error message in a banner
-            self.page.banner = ft.Banner(
-                content=ft.Text("Failed to remove song. Please try again.", color=ft.colors.RED),
-                bgcolor=ft.colors.WHITE,
-                actions=[
-                    ft.TextButton("Close", on_click=lambda _: self.close_banner())
-                ]
-            )
-            self.page.banner.open = True
             self.page.update()
 
     def removeItemsForm(self) -> ft.Card:
+        """Create the form for removing users or songs."""
         self.removeUser = ft.TextField(label="Username to Remove", width=250)
         self.removeSong = ft.TextField(label="Song Name to Remove", width=250)
 
@@ -185,8 +221,8 @@ class Admin(ft.View):
                 padding=ft.padding.all(15),
                 gradient=ft.LinearGradient(
                     begin=ft.alignment.Alignment(-1, -1),  # Top-left
-                    end=ft.alignment.Alignment(1, 1),  # Bottom-right
-                    colors=["#FFFED8", "#D6DCFF"],  # Your gradient colors
+                    end=ft.alignment.Alignment(1, 1),      # Bottom-right
+                    colors=["#FFFED8", "#D6DCFF"],          # Gradient colors
                 ),
             ),
             elevation=5
@@ -194,49 +230,43 @@ class Admin(ft.View):
         return remove_form
 
     def addSongToDatabase(self, e):
+        """Add a new song to the database."""
         try:
-            self.db_handler.insert_data(Songs, song_name=self.addSongName.value, artist=self.addArtist.value, audio_path = self.addAudio.value, img_src = self.addSrc.value, counts=0)
-            # Show a success message to the user
-            self.controls.append(ft.Text("Song added successfully!", color=ft.colors.GREEN))
+            self.db_handler.insert_data(
+                Songs,
+                song_name=self.addSongName.value,
+                artist=self.addArtist.value,
+                audio_path=self.addAudio.value,
+                img_src=self.addSrc.value,
+                counts=0
+            )
             self.page.update()
         except Exception as e:
             logger("ERROR", f"Failed to add song: {e}")
-            self.controls.append(ft.Text("Failed to add song. Please try again.", color=ft.colors.RED))
             self.page.update()
 
     def addUserToDatabase(self, e):
+        """Add a new user to the database."""
         try:
-            self.db_handler.insert_data(UserData, username=self.addUser.value, password=hash(self.addPassword.value), role=self.addRole.value, LoginTime=0)
-            # Show a success message in a banner
-            self.page.banner = ft.Banner(
-                content=ft.Text("User added successfully!", color=ft.colors.GREEN),
-                bgcolor=ft.colors.WHITE,
-                actions=[
-                    ft.TextButton("Close", on_click=lambda _: self.close_banner())
-                ]
+            self.db_handler.insert_data(
+                UserData,
+                username=self.addUser.value,
+                password=hash(self.addPassword.value),
+                role=self.addRole.value,
+                LoginTime=0
             )
-            self.page.banner.open = True
             self.page.update()
-
         except Exception as e:
             logger("ERROR", f"Failed to add user: {e}")
-
-            # Show an error message in a banner
-            self.page.banner = ft.Banner(
-                content=ft.Text("Failed to add user. Please try again.", color=ft.colors.RED),
-                bgcolor=ft.colors.WHITE,
-                actions=[
-                    ft.TextButton("Close", on_click=lambda _: self.close_banner())
-                ]
-            )
-            self.page.banner.open = True
             self.page.update()
 
     def close_banner(self):
         """Closes the banner."""
-        pass
+        self.page.banner.open = False
+        self.page.update()
 
     def addUsersForm(self) -> ft.Card:
+        """Create the form for adding new users."""
         self.addUser = ft.TextField(label="User", width=250)
         self.addPassword = ft.TextField(label="Password", width=250, password=True, can_reveal_password=True)
         self.addRole = ft.Dropdown(
@@ -266,8 +296,8 @@ class Admin(ft.View):
                 padding=ft.padding.all(15),
                 gradient=ft.LinearGradient(
                     begin=ft.alignment.Alignment(-1, -1),  # Top-left
-                    end=ft.alignment.Alignment(1, 1),  # Bottom-right
-                    colors=["#FFFED8", "#D6DCFF"],  # Your gradient colors
+                    end=ft.alignment.Alignment(1, 1),      # Bottom-right
+                    colors=["#FFFED8", "#D6DCFF"],          # Gradient colors
                 ),
             ),
             elevation=5
@@ -275,6 +305,7 @@ class Admin(ft.View):
         return user_form
 
     def addSongsForm(self) -> ft.Card:
+        """Create the form for adding new songs."""
         self.addSongName = ft.TextField(label="Song Name", width=250)
         self.addArtist = ft.TextField(label="Artist", width=250)
         self.addAudio = ft.TextField(label="Audio Path", width=250)
@@ -299,8 +330,8 @@ class Admin(ft.View):
                 padding=ft.padding.all(15),
                 gradient=ft.LinearGradient(
                     begin=ft.alignment.Alignment(-1, -1),  # Top-left
-                    end=ft.alignment.Alignment(1, 1),  # Bottom-right
-                    colors=["#FFFED8", "#D6DCFF"],  # Your gradient colors
+                    end=ft.alignment.Alignment(1, 1),      # Bottom-right
+                    colors=["#FFFED8", "#D6DCFF"],          # Gradient colors
                 ),
             ),
             elevation=5
@@ -308,21 +339,38 @@ class Admin(ft.View):
         return song_form
 
     def goAdminPage(self):
-        # Clear all controls and add admin-specific controls
-        self.controls.clear()
-        self.Directory.refresh()
+        """Navigate to the admin page with administration tools and statistics."""
         def load_admin_page():
-            self.controls.append(navbar(self.page, 2))
-            self.controls.extend([
-                ft.Text(f"Welcome, {self.page.session.get('user')}!", font_family="Fira", size=24, weight="bold"),
-                ft.TextButton(
-                    content=ft.Text("Log Out", font_family="Fira"),
-                    on_click=self.logout
-                )]
+            # Clear existing controls in main_content
+            self.main_content.content.controls.clear()
+
+            # Refresh directory and fetch statistics
+            self.Directory.refresh()
+
+            # Welcome message and logout button
+            welcome_row = ft.Row(
+                controls=[
+                    ft.Text(
+                        f"Welcome, {self.page.session.get('user')}!",
+                        font_family="Fira",
+                        size=24,
+                        weight="bold",
+                        color="black"
+                    ),
+                    ft.TextButton(
+                        content=ft.Text("Log Out", font_family="Fira"),
+                        on_click=self.logout
+                    )
+                ],
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN
             )
-            # Add a section for song statistics with a table
-            stats = getSongStats(self)
-            userlist = dict(sorted(self.userList().items(), key=lambda item: item[1][-1], reverse=True))
+
+            # User statistics table
+            userlist = dict(sorted(
+                self.userList().items(),
+                key=lambda item: item[1][-1],
+                reverse=True
+            ))
             user_table = ft.DataTable(
                 columns=[
                     ft.DataColumn(ft.Text("User", font_family='Fira')),
@@ -338,6 +386,8 @@ class Admin(ft.View):
                 ]
             )
 
+            # Song statistics table
+            stats = getSongStats(self)
             table = ft.DataTable(
                 columns=[
                     ft.DataColumn(ft.Text("Title", font_family='Fira')),
@@ -355,13 +405,13 @@ class Admin(ft.View):
                 ]
             )
 
-            # Wrap the data table and chart in a card
+            # Song statistics card with user table and song table
             stats_card = ft.Card(
                 content=ft.Container(
                     content=ft.Column(
                         controls=[
                             user_table,
-                            ft.Text("Song Statistics", size=18, weight="bold", font_family="Fira"),
+                            ft.Text("Song Statistics", size=18, weight="bold", font_family="Fira", color="black"),
                             table,
                             ft.Image(src_base64=returnBase64(self=self, data=getDailyData(self)))
                         ],
@@ -371,14 +421,14 @@ class Admin(ft.View):
                     padding=ft.padding.all(15),
                     gradient=ft.LinearGradient(
                         begin=ft.alignment.Alignment(-1, -1),  # Top-left
-                        end=ft.alignment.Alignment(1, 1),  # Bottom-right
-                        colors=["#FFFED8", "#D6DCFF"],  # Your gradient colors
+                        end=ft.alignment.Alignment(1, 1),      # Bottom-right
+                        colors=["#FFFED8", "#D6DCFF"],          # Gradient colors
                     ),
                 ),
                 elevation=5
             )
 
-            # Add the user and song forms in a row for better layout
+            # Forms for adding users and songs
             forms_row = ft.Row(
                 controls=[
                     self.addSongsForm(),
@@ -389,14 +439,45 @@ class Admin(ft.View):
                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN
             )
 
-            # Wrap forms in a column for further layout organization
+            # Administration tools section
             forms_section = ft.Column(
                 controls=[
-                    ft.Text("Administration Tools", size=24, weight="bold", font_family="Fira"),
+                    ft.Text("Administration Tools", size=24, weight="bold", font_family="Fira", color="black"),
                     forms_row
                 ],
                 spacing=20
             )
-            self.controls.extend([stats_card, forms_section, self.removeItemsForm()])
+
+            # Remove items form
+            remove_items_form = self.removeItemsForm()
+
+            # Header with menu button and notifications
+            header = ft.Row(
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                controls=[
+                    ft.IconButton(
+                        icon=ft.icons.MENU,
+                        on_click=self.sidebar.shrink_sidebar,  # Use sidebar's shrink method
+                        icon_color="black",
+                    ),
+                    ft.Row(
+                        controls=[
+                            ft.Icon(ft.icons.SEARCH, color="black"),
+                            ft.Icon(ft.icons.NOTIFICATIONS_OUTLINED, color="black"),
+                        ]
+                    ),
+                ]
+            )
+
+            # Add all admin controls to main_content
+            self.main_content.content.controls.extend([
+                header,
+                welcome_row,
+                stats_card,
+                forms_section,
+                remove_items_form,
+            ])
             self.page.update()
+
+        # Execute the admin page setup in a separate thread
         self.execute_in_thread(load_admin_page)

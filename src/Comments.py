@@ -1,7 +1,6 @@
 import flet as ft
 from modules.AudioDirectory import AudioDirectory
 from modules.Song import Song
-from modules.navbar import *
 from modules.GPT import GPT
 from modules.Tables import *
 from time import *
