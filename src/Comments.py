@@ -1,6 +1,13 @@
 import flet as ft
-from modules import *
+from modules.AudioDirectory import AudioDirectory
+from modules.Song import Song
+from modules.GPT import GPT
+from modules.Tables import *
 from time import *
+import threading
+from concurrent.futures import ThreadPoolExecutor
+
+
 t=localtime()
 time_now=str(t.tm_year)+str(t.tm_mon)+str(t.tm_mday)
 
@@ -14,32 +21,48 @@ class Comments(ft.View):
         self.song_id = None
         self.page = page
         self.page.fonts = {"Fira": "FiraCode.ttf"}
+        self.db_handler = self.page.session.get('database')
         self.playlist: list[Song] = AudioDirectory.playlist
+        self.GPT = GPT()
+        self.cache = self.page.session.get('cache')
+        self.executor = ThreadPoolExecutor(max_workers=10)
         self.init()
 
-    def getComments(self, song_id:int):
-        cursor = connectDatabase().cursor()
-        cursor.execute(f"SELECT * FROM comments WHERE song_id={song_id}")
-        lines = cursor.fetchall()
-        file = []
-        for line in lines:
-            if len(line) == 3:
-                file.append(line[2])
-        cursor.close()
-        return file
+    def getComments(self, song_id: int):
+        if self.cache.isData('comments'):
+            comments = self.cache.getData('comments')
+        else:
+            comments = self.db_handler.query_data(Comment, song_id=song_id)
+            self.cache.storeData('comments', comments)
+        return [[comment.comment_id,comment.username,comment.content] for comment in comments]
 
     def sendComment(self,e):
-        conn=connectDatabase()
-        cursor = conn.cursor()
-        cursor.execute(f"INSERT INTO comments (song_id,date,content) VALUES ({self.song_id},{time_now},'{e.control.value}')")
-        conn.commit()
-        cursor.close()
-        self.init()
-        self.page.update()
+        def action_send():
+            self.db_handler.insert_data(
+                Comment,
+                song_id=self.song_id,
+                timestamp=int(time()),
+                content=e.control.value,
+                username=self.cache.getData('user')
+            )
+            self.cache.clearData('comments')
+            self.init()
+            self.page.update()
+            self.db_handler.insert_data(
+                Comment,
+                song_id=self.song_id,
+                timestamp=int(time()),
+                content=self.GPT.autoReply(e.control.value),
+                username="yxnulleath"
+            )
+            self.cache.clearData('comments')
+            self.init()
+            self.page.update()
+        self.executor.submit(action_send)
 
 
     def init(self):
-        self.song_id=self.page.session.get('song').song_id
+        self.song_id=self.cache.getData('song').song_id
         self.back_btn = ft.TextButton(
             content=ft.Text(
                 "Return",
@@ -55,11 +78,15 @@ class Comments(ft.View):
             ),
             ft.Text(value=f'Welcome to No.{self.song_id}',font_family='Fira')
         ]
-        comments=self.getComments(self.song_id)
+
+        comments = self.getComments(self.song_id)
         for each in comments:
+            textVal = f'{each[1]} commented：{each[2]}'
+            if self.page.session.get('role')=='ADMIN':
+                textVal = f'[{each[0]}] {textVal}'
             self.controls.append(
-                ft.Row(
-                    controls=[ft.Text(value=f'Commented：{each}', font_family='Fira')]
+                ft.ResponsiveRow(
+                    controls=[ft.Text(value=textVal, font_family='Fira')]
                 )
             )
 

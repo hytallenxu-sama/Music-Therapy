@@ -1,9 +1,17 @@
 import flet as ft
 from src import *
+from modules.Database import Database
+from modules.Cache import Cache
 
 def main(page: ft.Page):
     page.theme_mode = ft.ThemeMode.LIGHT
     page.scroll = "smooth"
+    page.session.set("user", "Anonymous")
+    page.session.set("database", Database('sqlite:///SQLite/database.db'))
+    page.session.set("cache",Cache(page=page))
+    page.window.width = 600
+    page.window.height = 800
+    page.window_center = True
 
     def router(route):
         page.views.clear()
@@ -21,4 +29,4 @@ def main(page: ft.Page):
     page.on_route_change = router
     page.go('/home')
 
-ft.app(target=main)
+ft.app(target=main, assets_dir="content")

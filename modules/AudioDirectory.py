@@ -1,20 +1,20 @@
 from modules.Song import Song
 from modules.tools import *
+from modules.Database import Database
+from modules.Tables import *
+
 class AudioDirectory(object):
-    # read lines
-    cursor=connectDatabase().cursor()
-    cursor.execute("SELECT * FROM songs")
-    lines=cursor.fetchall()
+    db_handler = Database('sqlite:///SQLite/database.db')
+    lines=db_handler.query_data(Songs)
     playlist:list=[]
-    for i in lines:
-        playlist.append(Song(song_id=i[0],song_name=i[1],artist=i[2],audio_path=i[3],img_src=i[4]))
-    cursor.close()
+    for line in lines:
+        playlist.append(Song(song_id=line.song_id,song_name=line.song_name,artist=line.artist,audio_path=line.audio_path,img_src=line.img_src))
 
     def refresh(self):
-        self.cursor=connectDatabase().cursor()
-        self.cursor.execute("SELECT * FROM songs")
-        self.lines=self.cursor.fetchall()
+        self.db_handler = Database('sqlite:///SQLite/database.db')
+        lines = db_handler.query_data(Songs)
         self.playlist.clear()
-        for i in self.lines:
-            self.playlist.append(Song(song_id=i[0],song_name=i[1],artist=i[2],audio_path=i[3],img_src=i[4]))
-        self.cursor.close()
+        for line in lines:
+            self.playlist.append(
+                Song(song_id=line.song_id, song_name=line.song_name, artist=line.artist, audio_path=line.audio_path,
+                     img_src=line.img_src))

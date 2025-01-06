@@ -1,8 +1,17 @@
 import flet as ft
-from modules import *
+from modules import Database, GPT, Song
+from modules.Tables import *
+from modules.tools import *
+
 from time import *
 t=localtime()
-time_now=str(t.tm_year)+str(t.tm_mon)+str(t.tm_mday)
+month = str(t.tm_mon)
+day = str(t.tm_mday)
+if(t.tm_mon<10):
+    month='0'+month
+if(t.tm_mday<10):
+    day='0'+day
+time_now=str(t.tm_year)+month+day
 
 
 class CurrentSong(ft.View):
@@ -16,10 +25,9 @@ class CurrentSong(ft.View):
         self.audio = None
         self.page = page
         self.song = self.page.session.get('song')
+        self.db_handler = self.page.session.get('database')
+
         self.add_num()
-
-        #print(self.song.song_name, self.song.artist_name)
-
         #define vars for current song
         self.duration=0
         self.start=0
@@ -120,25 +128,16 @@ class CurrentSong(ft.View):
         self.create_audio_track()
 
     def add_num(self):
-        conn=connectDatabase()
-        cursor=conn.cursor()
-        # add counts
-        cursor.execute(f"SELECT counts FROM songs WHERE song_id={self.song.song_id}")
-        count = cursor.fetchone()
-        if count:
-            cursor.execute(f"UPDATE songs SET counts={count[0]+1} WHERE song_id={self.song.song_id}")
+        res = self.db_handler.query_data(Songs, song_id=self.song.song_id)
+        if res:
+            self.db_handler.update_data(Songs, filters={'song_id':self.song.song_id}, updates={'counts':res[0].counts+1})
         else:
-            cursor.execute(f"INSERT INTO songs (song_id,counts) VALUES ({self.song.song_id},1)")
-        # write to daily statistics
-        cursor.execute(f"SELECT * FROM daily_stats WHERE date='{time_now}'")
-        count = cursor.fetchone()
-        if count:
-            cursor.execute(f"UPDATE daily_stats SET counts={count[1]+1} WHERE date='{time_now}'")
+            self.db_handler.insert_data(Songs, song_id=self.song.song_id, song_name=self.song.song_name, artist=self.song.artist, audio_path=self.song.path, img_src=self.song.src, counts=0)
+        res = self.db_handler.query_data(Daily,date=time_now)
+        if res:
+            self.db_handler.update_data(Daily, filters={'date':time_now}, updates={'counts':res[0].counts+1})
         else:
-            cursor.execute(f"INSERT INTO daily_stats (date,counts) VALUES ('{time_now}',1)")
-        conn.commit()
-        conn.close()
-
+            self.db_handler.insert_data(Daily, date=time_now, counts=1)
 
     def play(self, e):
         try:
@@ -166,12 +165,6 @@ class CurrentSong(ft.View):
         except Exception as ex:
             print(f"An error occurred: {ex}")
             logger("ERROR", f"Error: {ex}")
-
-    #    def play(self,e):
- #       self.toggle_play_pause()
-  #      self.duration = self.audio.get_duration()
-   #     self.end = self.duration
-    #    self.slider.max=self.duration
 
     def toggle_seek(self, delta:float):
         self.start=delta
@@ -257,6 +250,6 @@ class CurrentSong(ft.View):
 
     def toggle_playlist(self,e):
         self.audio.pause()
-        self.page.session.remove('song')
+        # self.page.session.remove('song')
         self.page.go('/discover')
 
