@@ -4,6 +4,8 @@ import io
 import base64
 from hashlib import sha256
 import time
+import datetime
+import matplotlib.dates as mdates
 from modules.Database import Database
 from modules.Tables import *
 
@@ -38,33 +40,51 @@ def getSongStats(self) -> list:
     return top_songs
 
 
-def returnBase64(self,data:dict):
+def returnBase64(self, data: dict) -> str:
+    # Use a non-interactive backend
     plt.switch_backend('Agg')
+
+    # Sort the data by date
     sorted_data = sorted(data.items())
-    dates = [item[0] for item in sorted_data]
-    times = [int(item[1]) for item in sorted_data]
+    date_strings = [str(item[0]) for item in sorted_data]
+    times = [item[1] for item in sorted_data]
+    # Convert date strings to datetime objects
+    dates = [datetime.strptime(date, '%Y%m%d') for date in date_strings]
+    # Create the plot
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(dates, times, marker='o', linestyle='-')
 
-        # Create the plot
-    fig, ax = plt.subplots()
-    ax.plot(dates, times, marker='o')
-
-        # Set labels
+    # Set labels and title
     ax.set_xlabel("Date")
     ax.set_ylabel("Times")
     ax.set_title("Times vs. Date")
 
-        # Save the plot to a BytesIO object
+    # Format the x-axis to show dates properly
+    locator = mdates.AutoDateLocator()
+    formatter = mdates.DateFormatter('%Y-%m-%d')
+    ax.xaxis.set_major_locator(locator)
+    ax.xaxis.set_major_formatter(formatter)
+
+    # Rotate date labels for better readability
+    plt.setp(ax.get_xticklabels(), rotation=45, ha='right')
+
+    # Adjust layout to prevent clipping of tick-labels
+    plt.tight_layout()
+
+    # Save the plot to a BytesIO object
     buffer = io.BytesIO()
     plt.savefig(buffer, format="png")
     buffer.seek(0)
 
-        # Convert the plot to a base64 string for Flet Image
+    # Convert the plot to a base64 string
     img_data = buffer.getvalue()
-    plt.close(fig)  # Close the figure after saving to free resources
+    buffer.close()
+    plt.close(fig)  # Close the figure to free resources
 
-        # Convert BytesIO object to a base64-encoded image
-    img_data = base64.b64encode(img_data).decode("utf-8")
-    return img_data
+    # Encode the image to Base64
+    base64_img = base64.b64encode(img_data).decode('utf-8')
+
+    return base64_img
 
 def getDailyData(self):
     lines = db_handler.query_data(Daily)
